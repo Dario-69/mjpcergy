@@ -1,0 +1,5 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/departements/route": "app/api/departements/route.js",
+  "/dashboard/responsable/formations/create/page": "app/dashboard/responsable/formations/create/page.js"
+}

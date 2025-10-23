@@ -1,0 +1,17 @@
+[00:00:05.102] Server  LOG      ✓ Ready in 3.4s
+[00:00:08.249] Server  LOG      ○ Compiling /dashboard/responsable/formations/create ...
+[00:00:14.561] Server  WARN     ⚠ Unsupported metadata themeColor is configured in metadata export in /dashboard/responsable/formations/create. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+[00:00:14.562] Server  WARN     ⚠ Unsupported metadata viewport is configured in metadata export in /dashboard/responsable/formations/create. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+[00:00:17.597] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:20.330] Browser LOG     Utilisateur récupéré: {"department":null,"email":"occanseydarius69@gmail.com","id":"68f93f61424d6ce023d8c7d7","isActive":true,"name":"Doe John","role":"responsable"}
+[00:00:20.331] Browser LOG     Utilisateur récupéré: {"department":null,"email":"occanseydarius69@gmail.com","id":"68f93f61424d6ce023d8c7d7","isActive":true,"name":"Doe John","role":"responsable"}
+[00:00:22.151] Server  WARN     ⚠ Unsupported metadata themeColor is configured in metadata export in /_not-found. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+[00:00:22.152] Server  WARN     ⚠ Unsupported metadata viewport is configured in metadata export in /_not-found. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+[00:00:23.712] Server  ERROR   Erreur lors de la récupération des départements: MongoNetworkError: 007A265FF87F0000:error:0A000438:SSL routines:ssl3_read_bytes:tlsv1 alert internal error:ssl/record/rec_layer_s3.c:908:SSL alert number 80
+
+[00:00:24.469] Server  ERROR   Erreur lors de la récupération des départements: MongoNetworkError: 007A265FF87F0000:error:0A000438:SSL routines:ssl3_read_bytes:tlsv1 alert internal error:ssl/record/rec_layer_s3.c:908:SSL alert number 80
+

@@ -25,22 +25,22 @@ interface Module {
 }
 
 interface Formation {
-  _id: string;
+  id: string;
   title: string;
   description: string;
   thumbnailUrl?: string;
   department: {
-    _id: string;
+    id: string;
     name: string;
   };
   createdBy: {
-    _id: string;
+    id: string;
     name: string;
   };
   modules: Module[];
   isArchived: boolean;
   evaluation?: {
-    _id: string;
+    id: string;
     questions: any[];
   };
   estimatedDuration?: number;
@@ -100,7 +100,7 @@ export default function FormationsPage() {
 
       if (response.ok) {
         setFormations(formations.map(formation => 
-          formation._id === formationId ? { ...formation, isArchived: !isArchived } : formation
+          formation.id === formationId ? { ...formation, isArchived: !isArchived } : formation
         ));
       }
     } catch (error) {
@@ -112,7 +112,7 @@ export default function FormationsPage() {
     const matchesSearch = formation.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          formation.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDepartment = filterDepartment === "all" || 
-                             formation.department._id === filterDepartment;
+                             formation.department.id === filterDepartment;
     const matchesStatus = filterStatus === "all" || 
                          (filterStatus === "active" && !formation.isArchived) ||
                          (filterStatus === "archived" && formation.isArchived);
@@ -227,7 +227,7 @@ export default function FormationsPage() {
               <SelectContent>
                 <SelectItem value="all">Tous les départements</SelectItem>
                 {departments.map((dept) => (
-                  <SelectItem key={dept._id} value={dept._id}>
+                  <SelectItem key={dept.id} value={dept.id}>
                     {dept.name}
                   </SelectItem>
                 ))}
@@ -253,7 +253,7 @@ export default function FormationsPage() {
       {/* Formations List */}
       <div className="grid gap-4">
         {filteredFormations.map((formation) => (
-          <Card key={formation._id}>
+          <Card key={formation.id}>
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -309,14 +309,14 @@ export default function FormationsPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => router.push(`/dashboard/responsable/formations/${formation._id}/edit`)}
+                    onClick={() => router.push(`/dashboard/responsable/formations/${formation.id}/edit`)}
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => toggleArchiveStatus(formation._id, formation.isArchived)}
+                    onClick={() => toggleArchiveStatus(formation.id, formation.isArchived)}
                   >
                     {formation.isArchived ? (
                       <Users className="h-4 w-4" />

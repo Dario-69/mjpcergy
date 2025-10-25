@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import connectDB from "@/lib/mongodb";
-import User from "@/models/User";
-import Department from "@/models/Department";
+import { adminDb } from "@/lib/firebase-admin";
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,11 +28,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await connectDB();
-
     // Vérifier si l'utilisateur existe déjà
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
+    const usersRef = adminDb.collection('users');
+    const existingUser = await usersRef.where('email', '==', email).get();
+    
+    if (!existingUser.empty) {
       return NextResponse.json(
         { message: "Un compte avec cet email existe déjà" },
         { status: 400 }
@@ -43,8 +41,10 @@ export async function POST(request: NextRequest) {
 
     // Vérifier que le département existe (pour les membres)
     if (role === "membre") {
-      const departmentExists = await Department.findById(department);
-      if (!departmentExists) {
+      const departmentRef = adminDb.collection('departments').doc(department);
+      const departmentDoc = await departmentRef.get();
+      
+      if (!departmentDoc.exists) {
         return NextResponse.json(
           { message: "Département introuvable" },
           { status: 400 }
@@ -56,16 +56,18 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, 12);
 
     // Créer l'utilisateur
-    const user = new User({
+    const userData = {
       name,
       email,
       password: hashedPassword,
       role,
-      department: role === "membre" ? department : undefined,
-      isActive: role === "responsable" ? true : false, // Les responsables sont actifs par défaut
-    });
+      departmentId: role === "membre" ? department : null,
+      isActive: true, // Tous les utilisateurs sont actifs par défaut
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
 
-    await user.save();
+    const userRef = await usersRef.add(userData);
 
     return NextResponse.json(
       { message: "Compte créé avec succès" },

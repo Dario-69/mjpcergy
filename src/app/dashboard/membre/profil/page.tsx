@@ -12,12 +12,12 @@ import { User, Mail, Calendar, Award, Edit, Save, X } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 
 interface UserProfile {
-  _id: string;
+  id: string;
   name: string;
   email: string;
   role: string;
   department?: {
-    _id: string;
+    id: string;
     name: string;
   };
   createdAt: string;
@@ -42,24 +42,15 @@ export default function MonProfilPage() {
 
   const fetchProfile = async () => {
     try {
-      // Simuler les données du profil (à remplacer par une vraie API)
-      const mockProfile: UserProfile = {
-        _id: user?.id || '1',
-        name: user?.name || 'Jean Dupont',
-        email: user?.email || 'jean@mjp.com',
-        role: user?.role || 'membre',
-        department: {
-          _id: '1',
-          name: 'Musique'
-        },
-        createdAt: '2024-01-10T08:00:00Z'
-      };
-      setProfile(mockProfile);
-      setFormData({
-        name: mockProfile.name,
-        email: mockProfile.email,
-        department: mockProfile.department?._id || ''
-      });
+      // Utiliser les données de l'utilisateur connecté
+      if (user) {
+        setProfile(user);
+        setFormData({
+          name: user.name,
+          email: user.email,
+          department: user.department?.id || ''
+        });
+      }
     } catch (error) {
       console.error('Erreur lors du chargement du profil:', error);
     } finally {
@@ -94,7 +85,7 @@ export default function MonProfilPage() {
     setFormData({
       name: profile?.name || '',
       email: profile?.email || '',
-      department: profile?.department?._id || ''
+      department: profile?.department?.id || ''
     });
     setIsEditing(false);
   };
@@ -210,7 +201,7 @@ export default function MonProfilPage() {
               </SelectTrigger>
               <SelectContent>
                 {departments.map((dept) => (
-                  <SelectItem key={dept._id} value={dept._id}>
+                  <SelectItem key={dept.id} value={dept.id}>
                     {dept.name}
                   </SelectItem>
                 ))}

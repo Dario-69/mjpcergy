@@ -7,16 +7,16 @@ import { Badge } from "@/components/ui/badge";
 import { BookOpen, Play, CheckCircle, Clock, Award, BarChart3 } from "lucide-react";
 
 interface Formation {
-  _id: string;
+  id: string;
   title: string;
   description: string;
   videoUrl: string;
   department: {
-    _id: string;
+    id: string;
     name: string;
   };
   evaluation?: {
-    _id: string;
+    id: string;
     questions: any[];
   };
   createdAt: string;
@@ -41,11 +41,22 @@ export default function MesFormationsPage() {
 
   const fetchFormations = async () => {
     try {
-      // Récupérer les formations du département de l'utilisateur
-      const response = await fetch('/api/formations');
-      if (response.ok) {
-        const data = await response.json();
-        setFormations(data);
+      // Récupérer les données de l'utilisateur connecté
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        const user = JSON.parse(userData);
+        
+        // Récupérer UNIQUEMENT les formations du département de l'utilisateur
+        if (user.department?.id) {
+          const response = await fetch(`/api/formations?department=${user.department.id}`);
+          if (response.ok) {
+            const data = await response.json();
+            setFormations(data);
+          }
+        } else {
+          console.error('Utilisateur sans département');
+          setFormations([]);
+        }
       }
     } catch (error) {
       console.error('Erreur lors du chargement des formations:', error);
@@ -56,13 +67,16 @@ export default function MesFormationsPage() {
 
   const fetchProgress = async () => {
     try {
-      // Simuler les données de progression (à remplacer par une vraie API)
-      const mockProgress: FormationProgress[] = [
-        { formationId: '1', status: 'completed', progress: 100, completedAt: '2024-01-15' },
-        { formationId: '2', status: 'in-progress', progress: 60 },
-        { formationId: '3', status: 'not-started', progress: 0 },
-      ];
-      setProgress(mockProgress);
+      // Récupérer les progrès depuis Firebase
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        const user = JSON.parse(userData);
+        const response = await fetch(`/api/user-progress?userId=${user.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          setProgress(data);
+        }
+      }
     } catch (error) {
       console.error('Erreur lors du chargement de la progression:', error);
     }
@@ -170,9 +184,9 @@ export default function MesFormationsPage() {
       {/* Formations List */}
       <div className="grid gap-4">
         {formations.map((formation) => {
-          const formationProgress = getFormationProgress(formation._id);
+          const formationProgress = getFormationProgress(formation.id);
           return (
-            <Card key={formation._id} className="hover:shadow-lg transition-shadow">
+            <Card key={formation.id} className="hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -206,10 +220,10 @@ export default function MesFormationsPage() {
                       <span>Département: {formation.department.name}</span>
                       <span>•</span>
                       <span>Ajoutée le: {new Date(formation.createdAt).toLocaleDateString('fr-FR')}</span>
-                      {formationProgress.completedAt && (
+                      {(formationProgress as any).completedAt && (
                         <>
                           <span>•</span>
-                          <span>Terminée le: {new Date(formationProgress.completedAt).toLocaleDateString('fr-FR')}</span>
+                          <span>Terminée le: {new Date((formationProgress as any).completedAt).toLocaleDateString('fr-FR')}</span>
                         </>
                       )}
                     </div>

@@ -6,9 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Award, TrendingUp, Target, Calendar, BarChart3 } from "lucide-react";
 
 interface EvaluationResult {
-  _id: string;
+  id: string;
   formation: {
-    _id: string;
+    id: string;
     title: string;
   };
   score: number;
@@ -26,40 +26,18 @@ export default function MesResultatsPage() {
 
   const fetchResults = async () => {
     try {
-      // Simuler les données des résultats (à remplacer par une vraie API)
-      const mockResults: EvaluationResult[] = [
-        {
-          _id: '1',
-          formation: {
-            _id: '1',
-            title: 'Introduction au Leadership'
-          },
-          score: 85,
-          completedAt: '2024-01-15T10:30:00Z',
-          answers: []
-        },
-        {
-          _id: '2',
-          formation: {
-            _id: '2',
-            title: 'Gestion du Temps'
-          },
-          score: 92,
-          completedAt: '2024-01-20T14:15:00Z',
-          answers: []
-        },
-        {
-          _id: '3',
-          formation: {
-            _id: '3',
-            title: 'Communication Efficace'
-          },
-          score: 78,
-          completedAt: '2024-02-01T09:45:00Z',
-          answers: []
+      // Récupérer les données de l'utilisateur connecté
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        const user = JSON.parse(userData);
+        
+        // Récupérer les résultats de l'utilisateur
+        const response = await fetch(`/api/evaluation-results?userId=${user.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          setResults(data);
         }
-      ];
-      setResults(mockResults);
+      }
     } catch (error) {
       console.error('Erreur lors du chargement des résultats:', error);
     } finally {
@@ -158,7 +136,7 @@ export default function MesResultatsPage() {
       {/* Results List */}
       <div className="space-y-4">
         {results.map((result) => (
-          <Card key={result._id} className="hover:shadow-lg transition-shadow">
+          <Card key={result.id} className="hover:shadow-lg transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="flex-1">

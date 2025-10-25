@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Users, Mail, Calendar, Award, BookOpen } from "lucide-react";
 
 interface DepartmentMember {
-  _id: string;
+  id: string;
   name: string;
   email: string;
   role: string;
@@ -16,11 +16,11 @@ interface DepartmentMember {
 }
 
 interface Department {
-  _id: string;
+  id: string;
   name: string;
   description: string;
   referent?: {
-    _id: string;
+    id: string;
     name: string;
     email: string;
   };
@@ -39,19 +39,20 @@ export default function MonDepartementPage() {
 
   const fetchDepartmentInfo = async () => {
     try {
-      // Simuler les données du département (à remplacer par une vraie API)
-      const mockDepartment: Department = {
-        _id: '1',
-        name: 'Musique',
-        description: 'Département responsable de la musique et du chant dans l\'église des jeunes. Nous nous occupons de tous les aspects musicaux des services et événements.',
-        referent: {
-          _id: '1',
-          name: 'Jean Dupont',
-          email: 'jean@mjp.com'
-        },
-        isActive: true
-      };
-      setDepartment(mockDepartment);
+      // Récupérer les données de l'utilisateur connecté
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        const user = JSON.parse(userData);
+        
+        // Récupérer le département de l'utilisateur
+        if (user.department?.id) {
+          const departmentResponse = await fetch(`/api/departements?id=${user.department.id}`);
+          if (departmentResponse.ok) {
+            const departmentData = await departmentResponse.json();
+            setDepartment(departmentData);
+          }
+        }
+      }
     } catch (error) {
       console.error('Erreur lors du chargement du département:', error);
     }
@@ -59,34 +60,20 @@ export default function MonDepartementPage() {
 
   const fetchDepartmentMembers = async () => {
     try {
-      // Simuler les données des membres (à remplacer par une vraie API)
-      const mockMembers: DepartmentMember[] = [
-        {
-          _id: '1',
-          name: 'Marie Martin',
-          email: 'marie@mjp.com',
-          role: 'membre',
-          isActive: true,
-          createdAt: '2024-01-15'
-        },
-        {
-          _id: '2',
-          name: 'Pierre Durand',
-          email: 'pierre@mjp.com',
-          role: 'membre',
-          isActive: true,
-          createdAt: '2024-01-20'
-        },
-        {
-          _id: '3',
-          name: 'Sophie Bernard',
-          email: 'sophie@mjp.com',
-          role: 'membre',
-          isActive: true,
-          createdAt: '2024-02-01'
+      // Récupérer les données de l'utilisateur connecté
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        const user = JSON.parse(userData);
+        
+        // Récupérer les membres du département
+        if (user.department?.id) {
+          const membersResponse = await fetch(`/api/users?department=${user.department.id}`);
+          if (membersResponse.ok) {
+            const membersData = await membersResponse.json();
+            setMembers(membersData);
+          }
         }
-      ];
-      setMembers(mockMembers);
+      }
     } catch (error) {
       console.error('Erreur lors du chargement des membres:', error);
     } finally {
@@ -196,7 +183,7 @@ export default function MonDepartementPage() {
         <CardContent>
           <div className="space-y-4">
             {members.map((member) => (
-              <div key={member._id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+              <div key={member.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
                 <div className="flex items-center space-x-4">
                   <Avatar>
                     <AvatarFallback className="bg-green-500 text-white">

@@ -1,23 +1,46 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
-import Department from "@/models/Department";
+import { adminDb } from "@/lib/firebase-admin";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB();
-
-    const department = await Department.findById(params.id)
-      .populate('referent', 'name email role');
-
-    if (!department) {
+    const departmentId = params.id;
+    
+    const departmentDoc = await adminDb.collection('departments').doc(departmentId).get();
+    
+    if (!departmentDoc.exists) {
       return NextResponse.json(
         { message: "Département non trouvé" },
         { status: 404 }
       );
     }
+
+    const departmentData = departmentDoc.data();
+    
+    // Récupérer le référent si le département en a un
+    let referentData = null;
+    if (departmentData?.referentId) {
+      const referentDoc = await adminDb.collection('users').doc(departmentData.referentId).get();
+      if (referentDoc.exists) {
+        referentData = {
+          id: referentDoc.id,
+          name: referentDoc.data()?.name,
+          email: referentDoc.data()?.email
+        };
+      }
+    }
+
+    const department = {
+      id: departmentDoc.id,
+      name: departmentData.name,
+      description: departmentData.description,
+      isActive: departmentData.isActive,
+      referent: referentData,
+      createdAt: departmentData.createdAt,
+      updatedAt: departmentData.updatedAt
+    };
 
     return NextResponse.json(department);
   } catch (error) {
@@ -34,12 +57,12 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { name, description, referent, isActive } = await request.json();
+    const departmentId = params.id;
+    const { name, description, referentId, isActive } = await request.json();
 
-    await connectDB();
-
-    const department = await Department.findById(params.id);
-    if (!department) {
+    // Vérifier que le département existe
+    const departmentDoc = await adminDb.collection('departments').doc(departmentId).get();
+    if (!departmentDoc.exists) {
       return NextResponse.json(
         { message: "Département non trouvé" },
         { status: 404 }
@@ -47,10 +70,9 @@ export async function PUT(
     }
 
     // Vérifier que le référent existe (si fourni)
-    if (referent) {
-      const User = require("@/models/User");
-      const referentUser = await User.findById(referent);
-      if (!referentUser) {
+    if (referentId) {
+      const referentDoc = await adminDb.collection('users').doc(referentId).get();
+      if (!referentDoc.exists) {
         return NextResponse.json(
           { message: "Référent non trouvé" },
           { status: 400 }
@@ -58,19 +80,20 @@ export async function PUT(
       }
     }
 
-    // Mettre à jour les champs
-    if (name) department.name = name;
-    if (description) department.description = description;
-    if (referent !== undefined) department.referent = referent;
-    if (typeof isActive === 'boolean') department.isActive = isActive;
+    const updateData = {
+      name,
+      description,
+      referentId: referentId || null,
+      isActive,
+      updatedAt: new Date()
+    };
 
-    await department.save();
+    await adminDb.collection('departments').doc(departmentId).update(updateData);
 
-    // Retourner le département mis à jour avec le référent peuplé
-    const updatedDepartment = await Department.findById(params.id)
-      .populate('referent', 'name email role');
+    return NextResponse.json({
+      message: "Département mis à jour avec succès"
+    });
 
-    return NextResponse.json(updatedDepartment);
   } catch (error) {
     console.error("Erreur lors de la mise à jour du département:", error);
     return NextResponse.json(
@@ -85,21 +108,39 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB();
+    const departmentId = params.id;
 
-    const department = await Department.findById(params.id);
-    if (!department) {
+    // Vérifier que le département existe
+    const departmentDoc = await adminDb.collection('departments').doc(departmentId).get();
+    if (!departmentDoc.exists) {
       return NextResponse.json(
         { message: "Département non trouvé" },
         { status: 404 }
       );
     }
 
-    // Désactiver le département au lieu de le supprimer
-    department.isActive = false;
-    await department.save();
+    // Vérifier s'il y a des utilisateurs dans ce département
+    const usersInDepartment = await adminDb.collection('users')
+      .where('departmentId', '==', departmentId)
+      .get();
 
-    return NextResponse.json({ message: "Département désactivé" });
+    if (!usersInDepartment.empty) {
+      return NextResponse.json(
+        { message: "Impossible de supprimer un département qui contient des utilisateurs" },
+        { status: 400 }
+      );
+    }
+
+    // Marquer comme inactif au lieu de supprimer
+    await adminDb.collection('departments').doc(departmentId).update({
+      isActive: false,
+      updatedAt: new Date()
+    });
+
+    return NextResponse.json({
+      message: "Département désactivé avec succès"
+    });
+
   } catch (error) {
     console.error("Erreur lors de la suppression du département:", error);
     return NextResponse.json(

@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Save, Plus, Trash2, Edit, Play, Upload } from "lucide-react";
+import FirebaseVideoUpload from "@/components/video/FirebaseVideoUpload";
 
 interface Module {
   id: string;
@@ -171,10 +172,10 @@ export default function CreateFormationPage() {
       // 1. Uploader toutes les vidéos en premier
       const videoUploadPromises: Promise<{videoId: string, moduleId: string, videoIndex: number}>[] = [];
       
-      modules.forEach((module, moduleIndex) => {
+      modules.forEach((module) => {
         module.videos.forEach((video, videoIndex) => {
           if (video.file) {
-            const uploadPromise = uploadVideoToGridFS(video.file, video.title, video.description || '', module.id, videoIndex);
+            const uploadPromise = uploadVideoToFirebase(video.file, video.title, video.description || '', module.id, videoIndex);
             videoUploadPromises.push(uploadPromise);
           }
         });
@@ -185,8 +186,10 @@ export default function CreateFormationPage() {
       
       // 2. Créer la formation avec les IDs des vidéos uploadées
       const formationData = {
-        ...formData,
-        createdBy: currentUser?.id, // Ajouter le créateur
+        title: formData.title,
+        description: formData.description,
+        department: formData.department,
+        createdBy: currentUser.id,
         modules: modules.map((module) => ({
           ...module,
           videos: module.videos.map((video, videoIndex) => {
@@ -198,11 +201,13 @@ export default function CreateFormationPage() {
             return {
               ...video,
               videoId: uploadResult?.videoId || video.videoId,
-              id: undefined, // MongoDB générera un nouvel ID
               file: undefined // Ne pas envoyer le fichier
             };
           })
-        }))
+        })),
+        tags: formData.tags,
+        estimatedDuration: null,
+        difficulty: 'débutant'
       };
 
       // Debug: Log des données envoyées
@@ -236,13 +241,12 @@ export default function CreateFormationPage() {
     }
   };
 
-  const uploadVideoToGridFS = async (file: File, title: string, description: string, moduleId: string, videoIndex: number): Promise<{videoId: string, moduleId: string, videoIndex: number}> => {
+  const uploadVideoToFirebase = async (file: File, title: string, description: string, moduleId: string, videoIndex: number): Promise<{videoId: string, moduleId: string, videoIndex: number}> => {
     const uploadFormData = new FormData();
     uploadFormData.append('file', file);
     uploadFormData.append('title', title);
     uploadFormData.append('description', description);
     uploadFormData.append('uploadedBy', currentUser?.id || '');
-    uploadFormData.append('department', formData.department || '');
 
     try {
       const response = await fetch('/api/videos/upload', {
@@ -251,14 +255,13 @@ export default function CreateFormationPage() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Erreur inconnue' }));
-        console.error('Erreur upload vidéo:', errorData);
-        throw new Error(`Erreur lors de l'upload de la vidéo: ${errorData.message || response.statusText}`);
+        const errorData = await response.json().catch(() => ({ message: 'Erreur upload' }));
+        throw new Error(`Erreur upload: ${errorData.message || response.statusText}`);
       }
 
       const result = await response.json();
       
-      if (!result.success || !result.videoId) {
+      if (!result.videoId) {
         throw new Error('Réponse invalide du serveur lors de l\'upload');
       }
 
@@ -268,7 +271,7 @@ export default function CreateFormationPage() {
         videoIndex
       };
     } catch (error) {
-      console.error('Erreur détaillée upload:', error);
+      console.error('Erreur lors de l\'upload de la vidéo:', error);
       throw error;
     }
   };
@@ -355,7 +358,7 @@ export default function CreateFormationPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {departments.map((dept) => (
-                        <SelectItem key={dept._id} value={dept._id}>
+                        <SelectItem key={dept.id} value={dept.id}>
                           {dept.name}
                         </SelectItem>
                       ))}
@@ -465,33 +468,35 @@ export default function CreateFormationPage() {
                         </CardHeader>
                         <CardContent>
                           <div className="space-y-3">
-                            <div className="flex justify-between items-center">
+                            <div className="flex justify-between items-center mb-3">
                               <Label>Vidéos ({module.videos.length})</Label>
-                              {selectedModuleId === module.id && (
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  onClick={() => setIsUploading(true)}
-                                >
-                                  <Upload className="h-4 w-4 mr-2" />
-                                  Ajouter une Vidéo
-                                </Button>
-                              )}
                             </div>
-                            {module.videos.length === 0 ? (
-                              <div className="text-center py-4 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
-                                <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                                <p className="text-sm">Aucune vidéo dans ce module</p>
-                                <p className="text-xs">Cliquez sur "Ajouter une Vidéo" pour commencer</p>
-                              </div>
-                            ) : (
-                              <div className="space-y-3">
+                            
+                            <FirebaseVideoUpload
+                              onVideoSelect={(file, title, description) => {
+                                const newVideo: Video = {
+                                  id: Date.now().toString(),
+                                  title,
+                                  description,
+                                  file,
+                                  order: module.videos.length + 1
+                                };
+                                updateModule(module.id, {
+                                  videos: [...module.videos, newVideo]
+                                });
+                              }}
+                              onRemove={() => {}}
+                              disabled={isUploading}
+                            />
+                            
+                            {module.videos.length > 0 && (
+                              <div className="space-y-3 mt-4">
                                 {module.videos.map((video, videoIndex) => (
                                   <div key={video.id} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
                                     <div className="flex items-start justify-between mb-2">
                                       <div className="flex items-center space-x-2">
-                                        <Badge variant="outline" size="sm">{videoIndex + 1}</Badge>
-                                        <span className="text-sm font-medium">Vidéo {videoIndex + 1}</span>
+                                        <Badge variant="outline">{videoIndex + 1}</Badge>
+                                        <span className="text-sm font-medium">{video.title}</span>
                                       </div>
                                       <Button
                                         type="button"
@@ -502,34 +507,14 @@ export default function CreateFormationPage() {
                                         <Trash2 className="h-3 w-3" />
                                       </Button>
                                     </div>
-                                    <div className="space-y-2">
-                                      <Input
-                                        placeholder="Titre de la vidéo"
-                                        value={video.title}
-                                        onChange={(e) => updateVideo(module.id, video.id, { title: e.target.value })}
-                                        className="text-sm"
-                                      />
-                                      <Textarea
-                                        placeholder="Description de la vidéo (optionnel)"
-                                        value={video.description}
-                                        onChange={(e) => updateVideo(module.id, video.id, { description: e.target.value })}
-                                        rows={2}
-                                        className="text-sm"
-                                      />
-                                      {video.file && (
-                                        <div className="mt-2 p-2 bg-gray-100 rounded border">
-                                          <div className="text-xs text-gray-600 mb-1">
-                                            Fichier sélectionné :
-                                          </div>
-                                          <div className="text-sm font-medium text-gray-800">
-                                            {video.file.name}
-                                          </div>
-                                          <div className="text-xs text-gray-500">
-                                            Taille: {(video.file.size / (1024 * 1024)).toFixed(2)} MB
-                                          </div>
-                                        </div>
-                                      )}
-                                    </div>
+                                    {video.description && (
+                                      <p className="text-sm text-gray-600">{video.description}</p>
+                                    )}
+                                    {video.file && (
+                                      <div className="text-xs text-green-600 mt-2">
+                                        Fichier: {video.file.name}
+                                      </div>
+                                    )}
                                   </div>
                                 ))}
                               </div>

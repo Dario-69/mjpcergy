@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import connectDB from "@/lib/mongodb";
-import User from "@/models/User";
+import { adminDb } from "@/lib/firebase-admin";
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,17 +14,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await connectDB();
-
     // Trouver l'utilisateur
-    const user = await User.findOne({ email }).populate('department');
+    const usersRef = adminDb.collection('users');
+    const userQuery = await usersRef.where('email', '==', email).get();
     
-    if (!user) {
+    if (userQuery.docs.length === 0) {
       return NextResponse.json(
         { message: "Email ou mot de passe incorrect" },
         { status: 401 }
       );
     }
+    
+    const userDoc = userQuery.docs[0];
+    const user = { id: userDoc.id, ...userDoc.data() } as any;
+    
+    // Récupérer le département si l'utilisateur en a un
+    let department = null;
+    if (user.departmentId) {
+      const departmentDoc = await adminDb.collection('departments').doc(user.departmentId).get();
+      if (departmentDoc.exists) {
+        department = { id: departmentDoc.id, ...departmentDoc.data() };
+      }
+    }
+    
 
     // Vérifier si le compte est actif
     if (!user.isActive) {
@@ -48,7 +59,7 @@ export async function POST(request: NextRequest) {
     // Créer les tokens JWT
     const accessToken = jwt.sign(
       { 
-        userId: user._id, 
+        userId: user.id, 
         email: user.email, 
         role: user.role 
       },
@@ -57,21 +68,21 @@ export async function POST(request: NextRequest) {
     );
 
     const refreshToken = jwt.sign(
-      { userId: user._id },
+      { userId: user.id },
       process.env.JWT_REFRESH_SECRET!,
       { expiresIn: '7d' }
     );
 
     // Retourner les données utilisateur (sans le mot de passe)
     const userData = {
-      id: user._id.toString(),
+      id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
       isActive: user.isActive,
-      department: user.department ? {
-        id: user.department._id.toString(),
-        name: user.department.name
+      department: department ? {
+        id: department.id,
+        name: (department as any).name
       } : null
     };
 

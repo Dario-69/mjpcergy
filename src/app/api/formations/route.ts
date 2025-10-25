@@ -1,30 +1,111 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
-import Formation from "@/models/Formation";
+import { adminDb } from "@/lib/firebase-admin";
 
 export async function GET(request: NextRequest) {
   try {
-    await connectDB();
-
     const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
     const department = searchParams.get('department');
-    const isArchived = searchParams.get('archived') === 'true';
+    const createdBy = searchParams.get('createdBy');
 
-    let query: any = {};
-    
+    // Si un ID spécifique est demandé, retourner cette formation
+    if (id) {
+      const formationDoc = await adminDb.collection('formations').doc(id).get();
+      
+      if (!formationDoc.exists) {
+        return NextResponse.json(
+          { message: "Formation non trouvée" },
+          { status: 404 }
+        );
+      }
+
+      const formationData = formationDoc.data();
+      
+      // Récupérer le département
+      let departmentData = null;
+      if (formationData?.departmentId) {
+        const departmentDoc = await adminDb.collection('departments').doc(formationData.departmentId).get();
+        if (departmentDoc.exists) {
+          departmentData = {
+            id: departmentDoc.id,
+            name: departmentDoc.data()?.name
+          };
+        }
+      }
+
+      // Récupérer le créateur
+      let creatorData = null;
+      if (formationData?.createdById) {
+        const creatorDoc = await adminDb.collection('users').doc(formationData.createdById).get();
+        if (creatorDoc.exists) {
+          creatorData = {
+            id: creatorDoc.id,
+            name: creatorDoc.data()?.name,
+            email: creatorDoc.data()?.email
+          };
+        }
+      }
+
+      const formation = {
+        id: formationDoc.id,
+        ...formationData,
+        department: departmentData,
+        createdBy: creatorData
+      };
+
+      return NextResponse.json([formation]);
+    }
+
+    let query = adminDb.collection('formations');
+
+    // Filtrer par département si fourni
     if (department) {
-      query.department = department;
-    }
-    
-    if (isArchived !== null) {
-      query.isArchived = isArchived;
+      query = query.where('departmentId', '==', department) as any;
     }
 
-    const formations = await Formation.find(query)
-      .populate('department', 'name')
-      .populate('createdBy', 'name email')
-      .populate('evaluation', 'questions')
-      .sort({ createdAt: -1 });
+    // Filtrer par créateur si fourni
+    if (createdBy) {
+      query = query.where('createdById', '==', createdBy) as any;
+    }
+
+    const formationsSnapshot = await query.orderBy('createdAt', 'desc').get();
+    
+    const formations = [];
+    for (const doc of formationsSnapshot.docs) {
+      const data = doc.data();
+      
+      // Récupérer le département
+      let departmentData = null;
+      if (data.departmentId) {
+        const departmentDoc = await adminDb.collection('departments').doc(data.departmentId).get();
+        if (departmentDoc.exists) {
+          departmentData = {
+            id: departmentDoc.id,
+            name: departmentDoc.data()?.name
+          };
+        }
+      }
+
+      // Récupérer le créateur
+      let creatorData = null;
+      if (data.createdById) {
+        const creatorDoc = await adminDb.collection('users').doc(data.createdById).get();
+        if (creatorDoc.exists) {
+          creatorData = {
+            id: creatorDoc.id,
+            name: creatorDoc.data()?.name,
+            email: creatorDoc.data()?.email
+          };
+        }
+      }
+      
+      formations.push({
+        id: doc.id,
+        ...data,
+        department: departmentData,
+        createdBy: creatorData
+      });
+    }
 
     return NextResponse.json(formations);
   } catch (error) {
@@ -38,51 +119,18 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { 
-      title, 
-      description, 
-      department, 
-      createdBy, 
-      modules = [], 
-      tags = [],
-      thumbnailUrl
-    } = await request.json();
-
-    // Debug: Log des données reçues
-    console.log('API - Données reçues:', {
-      title: !!title,
-      description: !!description,
-      department: !!department,
-      createdBy: !!createdBy,
-      modulesCount: modules.length
-    });
+    const { title, description, department, createdBy, modules, thumbnailUrl, estimatedDuration, difficulty, tags } = await request.json();
 
     if (!title || !description || !department || !createdBy) {
-      console.log('API - Validation échouée:', {
-        title: title || 'MANQUANT',
-        description: description || 'MANQUANT',
-        department: department || 'MANQUANT',
-        createdBy: createdBy || 'MANQUANT'
-      });
       return NextResponse.json(
-        { message: "Titre, description, département et créateur sont requis" },
+        { message: "Titre, description, département et créateur requis" },
         { status: 400 }
       );
     }
-
-    if (modules.length === 0) {
-      return NextResponse.json(
-        { message: "Au moins un module est requis" },
-        { status: 400 }
-      );
-    }
-
-    await connectDB();
 
     // Vérifier que le département existe
-    const Department = require("@/models/Department");
-    const departmentExists = await Department.findById(department);
-    if (!departmentExists) {
+    const departmentDoc = await adminDb.collection('departments').doc(department).get();
+    if (!departmentDoc.exists) {
       return NextResponse.json(
         { message: "Département non trouvé" },
         { status: 400 }
@@ -90,45 +138,38 @@ export async function POST(request: NextRequest) {
     }
 
     // Vérifier que le créateur existe
-    const User = require("@/models/User");
-    const creatorExists = await User.findById(createdBy);
-    if (!creatorExists) {
+    const creatorDoc = await adminDb.collection('users').doc(createdBy).get();
+    if (!creatorDoc.exists) {
       return NextResponse.json(
         { message: "Créateur non trouvé" },
         { status: 400 }
       );
     }
 
-    // Calculer la durée totale estimée
-    const estimatedDuration = modules.reduce((total: number, module: any) => {
-      return total + (module.videos?.reduce((videoTotal: number, video: any) => {
-        return videoTotal + (video.duration || 0);
-      }, 0) || 0);
-    }, 0);
-
-    const formation = new Formation({
+    const formationData = {
       title,
       description,
-      thumbnailUrl,
-      department,
-      createdBy,
-      modules: modules.map((module: any) => ({
-        ...module,
-        id: undefined // MongoDB générera un nouvel ID
-      })),
-      tags,
-      estimatedDuration: Math.round(estimatedDuration / 60) // Convertir en minutes
-    });
+      departmentId: department,
+      createdById: createdBy,
+      modules: modules || [],
+      thumbnailUrl: thumbnailUrl || null,
+      estimatedDuration: estimatedDuration || null,
+      difficulty: difficulty || 'débutant',
+      tags: tags || [],
+      isArchived: false,
+      evaluationId: null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
 
-    await formation.save();
+    const docRef = await adminDb.collection('formations').add(formationData);
 
-    // Retourner la formation avec les relations peuplées
-    const populatedFormation = await Formation.findById(formation._id)
-      .populate('department', 'name')
-      .populate('createdBy', 'name email')
-      .populate('evaluation', 'questions');
+    const formation = {
+      id: docRef.id,
+      ...formationData
+    };
 
-    return NextResponse.json(populatedFormation, { status: 201 });
+    return NextResponse.json(formation, { status: 201 });
   } catch (error) {
     console.error("Erreur lors de la création de la formation:", error);
     return NextResponse.json(

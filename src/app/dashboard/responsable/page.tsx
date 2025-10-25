@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +10,26 @@ import Link from "next/link";
 
 export default function ResponsableDashboard() {
   const { user } = useAuth();
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('/api/stats?type=admin');
+      if (response.ok) {
+        const data = await response.json();
+        setStats(data);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des statistiques:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <ProtectedRoute requiredRole="responsable">
@@ -45,9 +66,9 @@ export default function ResponsableDashboard() {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">24</div>
+                <div className="text-2xl font-bold">{stats?.overview?.totalUsers || 0}</div>
                 <p className="text-xs text-muted-foreground">
-                  +2 depuis le mois dernier
+                  {stats?.overview?.activeUsers || 0} actifs
                 </p>
               </CardContent>
             </Card>
@@ -71,26 +92,51 @@ export default function ResponsableDashboard() {
                 <BarChart3 className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">12</div>
+                <div className="text-2xl font-bold">{stats?.overview?.totalEvaluations || 0}</div>
                 <p className="text-xs text-muted-foreground">
-                  +3 cette semaine
+                  Score moyen: {stats?.overview?.averageScore || 0}%
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Départements</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Vidéos</CardTitle>
+                <BookOpen className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">5</div>
+                <div className="text-2xl font-bold">{stats?.overview?.totalVideos || 0}</div>
                 <p className="text-xs text-muted-foreground">
-                  Tous actifs
+                  Vidéos uploadées
                 </p>
               </CardContent>
             </Card>
           </div>
+
+          {/* Activités récentes */}
+          {stats && (
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle>Activités récentes (24h)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">{stats.overview?.recentProgress || 0}</div>
+                    <p className="text-sm text-gray-600">Progrès récents</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">{stats.overview?.recentEvaluations || 0}</div>
+                    <p className="text-sm text-gray-600">Évaluations terminées</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-purple-600">{stats.overview?.completedFormations || 0}</div>
+                    <p className="text-sm text-gray-600">Formations complétées</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Quick Actions */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

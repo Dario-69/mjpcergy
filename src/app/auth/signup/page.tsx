@@ -154,7 +154,7 @@ export default function SignUp() {
                   </SelectTrigger>
                   <SelectContent>
                     {departments.map((dept: any) => (
-                      <SelectItem key={dept._id} value={dept._id}>
+                      <SelectItem key={dept.id} value={dept.id}>
                         {dept.name}
                       </SelectItem>
                     ))}

@@ -1,25 +1,46 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
-import User from "@/models/User";
-import bcrypt from "bcryptjs";
+import { adminDb } from "@/lib/firebase-admin";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB();
-
-    const user = await User.findById(params.id)
-      .populate('department', 'name description')
-      .select('-password');
-
-    if (!user) {
+    const userId = params.id;
+    
+    const userDoc = await adminDb.collection('users').doc(userId).get();
+    
+    if (!userDoc.exists) {
       return NextResponse.json(
         { message: "Utilisateur non trouvé" },
         { status: 404 }
       );
     }
+
+    const userData = userDoc.data();
+    
+    // Récupérer le département si l'utilisateur en a un
+    let departmentData = null;
+    if (userData?.departmentId) {
+      const departmentDoc = await adminDb.collection('departments').doc(userData.departmentId).get();
+      if (departmentDoc.exists) {
+        departmentData = {
+          id: departmentDoc.id,
+          name: departmentDoc.data()?.name
+        };
+      }
+    }
+
+    const user = {
+      id: userDoc.id,
+      name: userData.name,
+      email: userData.email,
+      role: userData.role,
+      isActive: userData.isActive,
+      department: departmentData,
+      createdAt: userData.createdAt,
+      updatedAt: userData.updatedAt
+    };
 
     return NextResponse.json(user);
   } catch (error) {
@@ -36,67 +57,45 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { name, email, role, isActive, department, password } = await request.json();
+    const userId = params.id;
+    const { name, email, isActive, departmentId } = await request.json();
 
-    await connectDB();
-
-    const user = await User.findById(params.id);
-    if (!user) {
+    // Vérifier que l'utilisateur existe
+    const userDoc = await adminDb.collection('users').doc(userId).get();
+    if (!userDoc.exists) {
       return NextResponse.json(
         { message: "Utilisateur non trouvé" },
         { status: 404 }
       );
     }
 
-    // Mettre à jour les champs
-    if (name) user.name = name;
-    if (email) user.email = email;
-    if (role) user.role = role;
-    if (typeof isActive === 'boolean') user.isActive = isActive;
-    if (department) user.department = department;
-    if (password) {
-      user.password = await bcrypt.hash(password, 12);
+    // Vérifier que le département existe (si fourni)
+    if (departmentId) {
+      const departmentDoc = await adminDb.collection('departments').doc(departmentId).get();
+      if (!departmentDoc.exists) {
+        return NextResponse.json(
+          { message: "Département non trouvé" },
+          { status: 400 }
+        );
+      }
     }
 
-    await user.save();
+    const updateData = {
+      name,
+      email,
+      isActive,
+      departmentId: departmentId || null,
+      updatedAt: new Date()
+    };
 
-    // Retourner l'utilisateur mis à jour sans le mot de passe
-    const updatedUser = await User.findById(params.id)
-      .populate('department', 'name description')
-      .select('-password');
+    await adminDb.collection('users').doc(userId).update(updateData);
 
-    return NextResponse.json(updatedUser);
+    return NextResponse.json({
+      message: "Utilisateur mis à jour avec succès"
+    });
+
   } catch (error) {
     console.error("Erreur lors de la mise à jour de l'utilisateur:", error);
-    return NextResponse.json(
-      { message: "Erreur interne du serveur" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    await connectDB();
-
-    const user = await User.findById(params.id);
-    if (!user) {
-      return NextResponse.json(
-        { message: "Utilisateur non trouvé" },
-        { status: 404 }
-      );
-    }
-
-    // Désactiver l'utilisateur au lieu de le supprimer
-    user.isActive = false;
-    await user.save();
-
-    return NextResponse.json({ message: "Utilisateur désactivé" });
-  } catch (error) {
-    console.error("Erreur lors de la suppression de l'utilisateur:", error);
     return NextResponse.json(
       { message: "Erreur interne du serveur" },
       { status: 500 }

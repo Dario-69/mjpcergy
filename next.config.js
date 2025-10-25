@@ -20,7 +20,7 @@ const nextConfig = {
     ],
   },
   turbopack: {
-    root: '/Users/dariusoccansey/Workspace/Matrix/mjp-training-app',
+    root: process.cwd(),
   },
 };
 

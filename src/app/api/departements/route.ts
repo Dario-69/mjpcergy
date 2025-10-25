@@ -1,14 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
-import Department from "@/models/Department";
+import { adminDb } from "@/lib/firebase-admin";
 
 export async function GET(request: NextRequest) {
   try {
-    await connectDB();
-
-    const departments = await Department.find({})
-      .populate('referent', 'name email')
-      .sort({ name: 1 });
+    const departmentsSnapshot = await adminDb.collection('departments').orderBy('name').get();
+    
+    const departments = [];
+    for (const doc of departmentsSnapshot.docs) {
+      const data = doc.data();
+      let referent = null;
+      
+      if (data.referentId) {
+        const referentDoc = await adminDb.collection('users').doc(data.referentId).get();
+        if (referentDoc.exists) {
+          referent = {
+            id: referentDoc.id,
+            name: referentDoc.data()?.name,
+            email: referentDoc.data()?.email
+          };
+        }
+      }
+      
+      departments.push({
+        id: doc.id,
+        ...data,
+        referent
+      });
+    }
 
     return NextResponse.json(departments);
   } catch (error) {
@@ -31,11 +49,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await connectDB();
-
     // Vérifier si le département existe déjà
-    const existingDepartment = await Department.findOne({ name });
-    if (existingDepartment) {
+    const existingDepartment = await adminDb.collection('departments').where('name', '==', name).get();
+    if (!existingDepartment.empty) {
       return NextResponse.json(
         { message: "Un département avec ce nom existe déjà" },
         { status: 400 }
@@ -44,9 +60,8 @@ export async function POST(request: NextRequest) {
 
     // Vérifier que le référent existe (si fourni)
     if (referent) {
-      const User = require("@/models/User");
-      const referentUser = await User.findById(referent);
-      if (!referentUser) {
+      const referentDoc = await adminDb.collection('users').doc(referent).get();
+      if (!referentDoc.exists) {
         return NextResponse.json(
           { message: "Référent non trouvé" },
           { status: 400 }
@@ -54,19 +69,37 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const department = new Department({
+    const departmentData = {
       name,
       description,
-      referent: referent || undefined,
-    });
+      referentId: referent || null,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
 
-    await department.save();
+    const docRef = await adminDb.collection('departments').add(departmentData);
 
-    // Retourner le département avec le référent peuplé
-    const populatedDepartment = await Department.findById(department._id)
-      .populate('referent', 'name email');
+    // Récupérer le référent si fourni
+    let referentData = null;
+    if (referent) {
+      const referentDoc = await adminDb.collection('users').doc(referent).get();
+      if (referentDoc.exists) {
+        referentData = {
+          id: referentDoc.id,
+          name: referentDoc.data()?.name,
+          email: referentDoc.data()?.email
+        };
+      }
+    }
 
-    return NextResponse.json(populatedDepartment, { status: 201 });
+    const department = {
+      id: docRef.id,
+      ...departmentData,
+      referent: referentData
+    };
+
+    return NextResponse.json(department, { status: 201 });
   } catch (error) {
     console.error("Erreur lors de la création du département:", error);
     return NextResponse.json(

@@ -1,84 +1,82 @@
 import { NextRequest, NextResponse } from "next/server";
-import { videoStorageService } from "@/lib/video-storage";
+import { adminDb } from "@/lib/firebase-admin";
+import { storage } from "@/lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🎬 API Upload vidéo - Début');
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const title = formData.get('title') as string;
     const description = formData.get('description') as string;
     const uploadedBy = formData.get('uploadedBy') as string;
-    const department = formData.get('department') as string;
-
-    console.log('📋 Données reçues:', {
-      fileName: file?.name,
-      fileSize: file?.size,
-      fileType: file?.type,
-      title,
-      description,
-      uploadedBy,
-      department
-    });
+    const formationId = formData.get('formationId') as string;
 
     if (!file || !title || !uploadedBy) {
       return NextResponse.json(
-        { message: "Fichier, titre et utilisateur requis" },
+        { message: "Fichier, titre et uploader requis" },
         { status: 400 }
       );
     }
 
-    // Vérifier le type de fichier
-    if (!file.type.startsWith('video/')) {
+    // Vérifier que l'utilisateur existe
+    const userDoc = await adminDb.collection('users').doc(uploadedBy).get();
+    if (!userDoc.exists) {
       return NextResponse.json(
-        { message: "Le fichier doit être une vidéo" },
+        { message: "Utilisateur non trouvé" },
         { status: 400 }
       );
     }
 
-    // Vérifier la taille (limite de 100MB pour GridFS)
-    const maxSize = 100 * 1024 * 1024; // 100MB
-    if (file.size > maxSize) {
-      return NextResponse.json(
-        { message: "Le fichier est trop volumineux. Taille maximale : 100MB" },
-        { status: 400 }
-      );
-    }
-
-    // Convertir le fichier en buffer
-    console.log('🔄 Conversion du fichier en buffer...');
-    const buffer = Buffer.from(await file.arrayBuffer());
-    console.log('✅ Buffer créé, taille:', buffer.length);
-
-    // Upload vers GridFS
-    console.log('📤 Upload vers GridFS...');
-    const videoId = await videoStorageService.uploadVideo(
-      buffer,
-      file.name,
-      {
-        title,
-        description: description || '',
-        uploadedBy,
-        department: department || undefined,
+    // Vérifier que la formation existe (si fournie)
+    if (formationId) {
+      const formationDoc = await adminDb.collection('formations').doc(formationId).get();
+      if (!formationDoc.exists) {
+        return NextResponse.json(
+          { message: "Formation non trouvée" },
+          { status: 400 }
+        );
       }
-    );
-    console.log('✅ Upload réussi, videoId:', videoId);
+    }
+
+    // Uploader le fichier vers Firebase Storage
+    const fileName = `${Date.now()}-${file.name}`;
+    const videoRef = ref(storage, `videos/${fileName}`);
+    
+    const fileBuffer = await file.arrayBuffer();
+    const uploadResult = await uploadBytes(videoRef, fileBuffer);
+    
+    // Obtenir l'URL de téléchargement
+    const downloadURL = await getDownloadURL(uploadResult.ref);
+
+    // Enregistrer les métadonnées de la vidéo dans Firestore
+    const videoData = {
+      title,
+      description: description || null,
+      fileName,
+      originalName: file.name,
+      fileSize: file.size,
+      mimeType: file.type,
+      downloadURL,
+      uploadedById: uploadedBy,
+      formationId: formationId || null,
+      duration: null, // À calculer côté client si possible
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    const videoDocRef = await adminDb.collection('videos').add(videoData);
 
     return NextResponse.json({
-      success: true,
-      videoId,
-      filename: file.name,
-      size: file.size,
-      type: file.type
+      message: "Vidéo uploadée avec succès",
+      videoId: videoDocRef.id,
+      downloadURL,
+      fileName
     });
 
   } catch (error) {
-    console.error("❌ Erreur lors de l'upload:", error);
-    console.error("🔍 Détails de l'erreur:", {
-      name: error instanceof Error ? error.name : 'Unknown',
-      message: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined
-    });
+    console.error("Erreur lors de l'upload de la vidéo:", error);
     return NextResponse.json(
       { message: "Erreur lors de l'upload de la vidéo" },
       { status: 500 }

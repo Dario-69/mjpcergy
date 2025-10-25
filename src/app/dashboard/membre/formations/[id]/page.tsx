@@ -5,265 +5,322 @@ import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import VimeoPlayer from "@/components/video/VimeoPlayer";
-import { ArrowLeft, BookOpen, Clock, Award, CheckCircle, Play } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { ArrowLeft, Play, CheckCircle, Clock, BookOpen, Video } from "lucide-react";
+import FirebaseVideoPlayer from "@/components/video/FirebaseVideoPlayer";
 
 interface Formation {
-  _id: string;
+  id: string;
   title: string;
   description: string;
-  videoUrl: string;
   department: {
-    _id: string;
+    id: string;
     name: string;
   };
-  evaluation?: {
-    _id: string;
-    questions: any[];
-  };
+  modules: Module[];
+  tags: string[];
   createdAt: string;
+}
+
+interface Module {
+  id: string;
+  title: string;
+  description: string;
+  order: number;
+  videos: Video[];
+}
+
+interface Video {
+  id: string;
+  title: string;
+  description: string;
+  videoId: string;
+  duration?: number;
+  order: number;
+  downloadURL?: string;
+}
+
+interface FormationProgress {
+  formationId: string;
+  status: 'not-started' | 'in-progress' | 'completed';
+  progress: number;
+  completedAt?: string;
+  lastAccessedAt?: string;
+  completedVideos: string[];
 }
 
 export default function FormationDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const formationId = params.id as string;
+  
   const [formation, setFormation] = useState<Formation | null>(null);
+  const [progress, setProgress] = useState<FormationProgress | null>(null);
   const [loading, setLoading] = useState(true);
-  const [videoProgress, setVideoProgress] = useState(0);
-  const [isCompleted, setIsCompleted] = useState(false);
-  const [videoId, setVideoId] = useState("");
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
 
   useEffect(() => {
-    if (params.id) {
-      fetchFormation();
+    fetchFormation();
+    fetchProgress();
+    // Récupérer les données de l'utilisateur connecté
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      const user = JSON.parse(userData);
+      setCurrentUser(user);
     }
-  }, [params.id]);
+  }, [formationId]);
 
   const fetchFormation = async () => {
     try {
-      const response = await fetch(`/api/formations/${params.id}`);
+      const response = await fetch(`/api/formations?id=${formationId}`);
       if (response.ok) {
         const data = await response.json();
-        setFormation(data);
-        
-        // Extraire l'ID de la vidéo
-        const id = data.videoUrl.match(/(?:vimeo\.com\/(?:.*#|.*/videos/)?|player\.vimeo\.com\/video\/)([0-9]+)/)?.[1];
-        if (id) {
-          setVideoId(id);
+        if (data.length > 0) {
+          setFormation(data[0]);
         }
       }
     } catch (error) {
       console.error('Erreur lors du chargement de la formation:', error);
+    }
+  };
+
+  const fetchProgress = async () => {
+    try {
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        const user = JSON.parse(userData);
+        const response = await fetch(`/api/user-progress?userId=${user.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          const formationProgress = data.find((p: any) => p.formationId === formationId);
+          setProgress(formationProgress || {
+            formationId,
+            status: 'not-started',
+            progress: 0,
+            completedVideos: []
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement de la progression:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleVideoProgress = (currentTime: number, duration: number) => {
-    const progress = (currentTime / duration) * 100;
-    setVideoProgress(progress);
-    
-    // Marquer comme complétée si 90% de la vidéo est regardée
-    if (progress >= 90 && !isCompleted) {
-      setIsCompleted(true);
-      // Ici, vous pourriez sauvegarder la progression dans la base de données
+  const markVideoAsCompleted = async (videoId: string) => {
+    if (!currentUser || !progress) return;
+
+    try {
+      const updatedCompletedVideos = [...(progress.completedVideos || []), videoId];
+      const totalVideos = formation?.modules.reduce((total, module) => total + module.videos.length, 0) || 0;
+      const newProgress = Math.round((updatedCompletedVideos.length / totalVideos) * 100);
+      const newStatus = newProgress === 100 ? 'completed' : 'in-progress';
+
+      const response = await fetch('/api/user-progress', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: currentUser.id,
+          formationId,
+          status: newStatus,
+          progress: newProgress,
+          completedAt: newStatus === 'completed' ? new Date() : null,
+          completedVideos: updatedCompletedVideos
+        }),
+      });
+
+      if (response.ok) {
+        setProgress({
+          ...progress,
+          status: newStatus,
+          progress: newProgress,
+          completedVideos: updatedCompletedVideos,
+          completedAt: newStatus === 'completed' ? new Date().toISOString() : progress.completedAt
+        });
+      }
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour de la progression:', error);
     }
   };
 
-  const handleVideoEnd = () => {
-    setIsCompleted(true);
-    setVideoProgress(100);
+  const getVideoProgress = (videoId: string) => {
+    return progress?.completedVideos?.includes(videoId) || false;
   };
 
-  const startEvaluation = () => {
-    if (formation?.evaluation) {
-      router.push(`/dashboard/membre/evaluations/${formation.evaluation._id}`);
-    }
+  const getModuleProgress = (module: Module) => {
+    const totalVideos = module.videos.length;
+    const completedVideos = module.videos.filter(video => 
+      progress?.completedVideos?.includes(video.id)
+    ).length;
+    return totalVideos > 0 ? Math.round((completedVideos / totalVideos) * 100) : 0;
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div className="container mx-auto p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p>Chargement de la formation...</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!formation) {
     return (
-      <div className="text-center py-12">
-        <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Formation non trouvée</h3>
-        <p className="text-gray-500">Cette formation n'existe pas ou a été supprimée.</p>
-        <Button onClick={() => router.back()} className="mt-4">
-          Retour
-        </Button>
+      <div className="container mx-auto p-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Formation non trouvée</h1>
+          <Button onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Retour
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center space-x-4">
+    <div className="container mx-auto p-6">
+      <div className="flex items-center gap-4 mb-6">
         <Button
           variant="outline"
-          size="sm"
           onClick={() => router.back()}
+          className="flex items-center gap-2"
         >
-          <ArrowLeft className="h-4 w-4 mr-2" />
+          <ArrowLeft className="h-4 w-4" />
           Retour
         </Button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold text-gray-900">{formation.title}</h1>
-          <div className="flex items-center space-x-4 mt-2">
-            <Badge variant="outline">{formation.department.name}</Badge>
-            <div className="flex items-center text-sm text-gray-500">
-              <Clock className="h-4 w-4 mr-1" />
-              Ajoutée le {new Date(formation.createdAt).toLocaleDateString('fr-FR')}
-            </div>
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold">{formation.title}</h1>
+          <p className="text-gray-600">{formation.department.name}</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Lecteur vidéo */}
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Play className="h-5 w-5 mr-2" />
-                Vidéo de Formation
-              </CardTitle>
-              <CardDescription>
-                Regardez la vidéo et suivez votre progression
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {videoId ? (
-                <VimeoPlayer
-                  videoId={videoId}
-                  className="w-full"
-                  onProgress={handleVideoProgress}
-                  onEnd={handleVideoEnd}
-                />
-              ) : (
-                <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
-                  <p className="text-gray-500">URL de vidéo invalide</p>
-                </div>
-              )}
-
-              {/* Barre de progression */}
-              <div className="mt-4">
-                <div className="flex justify-between text-sm text-gray-600 mb-2">
-                  <span>Progression</span>
-                  <span>{Math.round(videoProgress)}%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${videoProgress}%` }}
-                  ></div>
-                </div>
-                {isCompleted && (
-                  <div className="flex items-center mt-2 text-green-600">
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    <span className="text-sm font-medium">Formation terminée !</span>
-                  </div>
+      {/* Progression générale */}
+      {progress && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5" />
+              Progression de la formation
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium">Progression globale</span>
+                <span className="text-sm text-gray-600">{progress.progress}%</span>
+              </div>
+              <Progress value={progress.progress} className="h-2" />
+              <div className="flex items-center gap-2">
+                <Badge variant={progress.status === 'completed' ? 'default' : progress.status === 'in-progress' ? 'secondary' : 'outline'}>
+                  {progress.status === 'completed' ? 'Terminée' : progress.status === 'in-progress' ? 'En cours' : 'Non commencée'}
+                </Badge>
+                {progress.completedAt && (
+                  <span className="text-sm text-gray-600">
+                    Terminée le {new Date(progress.completedAt).toLocaleDateString()}
+                  </span>
                 )}
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Description */}
-          <Card>
+      {/* Vidéo sélectionnée */}
+      {selectedVideo && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Video className="h-5 w-5" />
+              {selectedVideo.title}
+            </CardTitle>
+            <CardDescription>{selectedVideo.description}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FirebaseVideoPlayer
+              videoId={selectedVideo.videoId}
+              title={selectedVideo.title}
+              onVideoEnd={() => markVideoAsCompleted(selectedVideo.id)}
+              isCompleted={getVideoProgress(selectedVideo.id)}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Modules et vidéos */}
+      <div className="space-y-6">
+        {formation.modules.map((module, moduleIndex) => (
+          <Card key={module.id}>
             <CardHeader>
-              <CardTitle>Description</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">{formation.description}</p>
-            </CardContent>
-          </Card>
-
-          {/* Informations */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Informations</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">Département</span>
-                <Badge variant="outline">{formation.department.name}</Badge>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">Statut</span>
-                <Badge variant={isCompleted ? "default" : "secondary"}>
-                  {isCompleted ? "Terminée" : "En cours"}
-                </Badge>
-              </div>
-
-              {formation.evaluation && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500">Évaluation</span>
-                  <Badge variant="secondary">Disponible</Badge>
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Badge variant="outline">Module {moduleIndex + 1}</Badge>
+                    {module.title}
+                  </CardTitle>
+                  <CardDescription>{module.description}</CardDescription>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {formation.evaluation && (
-                <Button 
-                  className="w-full" 
-                  onClick={startEvaluation}
-                  disabled={!isCompleted}
-                >
-                  <Award className="h-4 w-4 mr-2" />
-                  Passer l'Évaluation
-                </Button>
-              )}
-              
-              <Button variant="outline" className="w-full">
-                <BookOpen className="h-4 w-4 mr-2" />
-                Marquer comme Favori
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Statistiques */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Statistiques</CardTitle>
+                <div className="text-right">
+                  <div className="text-sm font-medium">
+                    {getModuleProgress(module)}% complété
+                  </div>
+                  <Progress value={getModuleProgress(module)} className="w-24 h-2" />
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-500">Progression</span>
-                  <span className="text-sm font-medium">{Math.round(videoProgress)}%</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-500">Temps regardé</span>
-                  <span className="text-sm font-medium">~15 min</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-500">Statut</span>
-                  <span className="text-sm font-medium">
-                    {isCompleted ? "Complétée" : "En cours"}
-                  </span>
-                </div>
+                {module.videos.map((video, videoIndex) => (
+                  <div
+                    key={video.id}
+                    className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                      selectedVideo?.id === video.id 
+                        ? 'border-blue-500 bg-blue-50' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                    onClick={() => setSelectedVideo(video)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          <Play className="h-4 w-4 text-gray-500" />
+                          <span className="text-sm font-medium">
+                            Vidéo {videoIndex + 1}
+                          </span>
+                        </div>
+                        <div>
+                          <h4 className="font-medium">{video.title}</h4>
+                          {video.description && (
+                            <p className="text-sm text-gray-600">{video.description}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {getVideoProgress(video.id) && (
+                          <CheckCircle className="h-5 w-5 text-green-500" />
+                        )}
+                        {video.duration && (
+                          <span className="text-sm text-gray-500">
+                            <Clock className="h-4 w-4 inline mr-1" />
+                            {Math.floor(video.duration / 60)}:{(video.duration % 60).toString().padStart(2, '0')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
-        </div>
+        ))}
       </div>
     </div>
   );

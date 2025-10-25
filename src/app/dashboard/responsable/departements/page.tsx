@@ -11,11 +11,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Settings, Plus, Edit, Trash2, Users, UserCheck } from "lucide-react";
 
 interface Department {
-  _id: string;
+  id: string;
   name: string;
   description: string;
   referent?: {
-    _id: string;
+    id: string;
     name: string;
     email: string;
   };
@@ -24,7 +24,7 @@ interface Department {
 }
 
 interface User {
-  _id: string;
+  id: string;
   name: string;
   email: string;
   role: string;
@@ -128,7 +128,7 @@ export default function DepartementsPage() {
     setError('');
     
     try {
-      const response = await fetch(`/api/departements/${selectedDepartment._id}`, {
+      const response = await fetch(`/api/departements/${selectedDepartment.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -143,7 +143,7 @@ export default function DepartementsPage() {
       if (response.ok) {
         const updatedDepartment = await response.json();
         setDepartments(departments.map(dept => 
-          dept._id === selectedDepartment._id ? updatedDepartment : dept
+          dept.id === selectedDepartment.id ? updatedDepartment : dept
         ));
         setIsEditDialogOpen(false);
         setSelectedDepartment(null);
@@ -170,7 +170,7 @@ export default function DepartementsPage() {
 
       if (response.ok) {
         setDepartments(departments.map(dept => 
-          dept._id === departmentId ? { ...dept, isActive: !isActive } : dept
+          dept.id === departmentId ? { ...dept, isActive: !isActive } : dept
         ));
       }
     } catch (error) {
@@ -183,7 +183,7 @@ export default function DepartementsPage() {
     setEditForm({
       name: department.name,
       description: department.description,
-      referent: department.referent?._id || ''
+      referent: department.referent?.id || ''
     });
     setIsEditDialogOpen(true);
   };
@@ -260,7 +260,7 @@ export default function DepartementsPage() {
                   <SelectContent>
                     <SelectItem value="none">Aucun référent</SelectItem>
                     {users.filter(user => user.role === 'responsable').map((user) => (
-                      <SelectItem key={user._id} value={user._id}>
+                      <SelectItem key={user.id} value={user.id}>
                         {user.name} ({user.email})
                       </SelectItem>
                     ))}
@@ -331,7 +331,7 @@ export default function DepartementsPage() {
                   <SelectContent>
                     <SelectItem value="none">Aucun référent</SelectItem>
                     {users.filter(user => user.role === 'responsable').map((user) => (
-                      <SelectItem key={user._id} value={user._id}>
+                      <SelectItem key={user.id} value={user.id}>
                         {user.name} ({user.email})
                       </SelectItem>
                     ))}
@@ -434,7 +434,7 @@ export default function DepartementsPage() {
       {/* Departments List */}
       <div className="grid gap-4">
         {filteredDepartments.map((department) => (
-          <Card key={department._id}>
+          <Card key={department.id}>
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -473,7 +473,7 @@ export default function DepartementsPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => toggleDepartmentStatus(department._id, department.isActive)}
+                    onClick={() => toggleDepartmentStatus(department.id, department.isActive)}
                   >
                     {department.isActive ? (
                       <Trash2 className="h-4 w-4" />

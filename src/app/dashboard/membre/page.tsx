@@ -1,14 +1,52 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Users, Award, Clock } from "lucide-react";
+import { BookOpen, Play, CheckCircle, Clock, Award, BarChart3, Users } from "lucide-react";
 import Link from "next/link";
 
 export default function MembreDashboard() {
   const { user } = useAuth();
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        const user = JSON.parse(userData);
+        const response = await fetch(`/api/stats?type=member&userId=${user.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          setStats(data);
+        }
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des statistiques:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <ProtectedRoute requiredRole="membre">
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p>Chargement...</p>
+          </div>
+        </div>
+      </ProtectedRoute>
+    );
+  }
 
   return (
     <ProtectedRoute requiredRole="membre">
@@ -20,16 +58,9 @@ export default function MembreDashboard() {
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Mon Dashboard</h1>
                 <p className="text-gray-600">Bonjour, {user?.name}</p>
-              </div>
-              <div className="flex space-x-4">
-                <Button variant="outline">
-                  <Users className="h-4 w-4 mr-2" />
-                  Mon Département
-                </Button>
-                <Button>
-                  <BookOpen className="h-4 w-4 mr-2" />
-                  Mes Formations
-                </Button>
+                {user?.department && (
+                  <p className="text-sm text-gray-500">Département: {user.department.name}</p>
+                )}
               </div>
             </div>
           </div>
@@ -41,24 +72,24 @@ export default function MembreDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Formations Suivies</CardTitle>
+                <CardTitle className="text-sm font-medium">Formations</CardTitle>
                 <BookOpen className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">5</div>
+                <div className="text-2xl font-bold">{stats?.overview?.totalFormations || 0}</div>
                 <p className="text-xs text-muted-foreground">
-                  +1 cette semaine
+                  {stats?.overview?.completedFormations || 0} terminées
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">En Cours</CardTitle>
-                <Clock className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">En cours</CardTitle>
+                <Play className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">2</div>
+                <div className="text-2xl font-bold">{stats?.overview?.inProgressFormations || 0}</div>
                 <p className="text-xs text-muted-foreground">
                   Formations en cours
                 </p>
@@ -67,30 +98,83 @@ export default function MembreDashboard() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Certificats</CardTitle>
+                <CardTitle className="text-sm font-medium">Évaluations</CardTitle>
                 <Award className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">3</div>
+                <div className="text-2xl font-bold">{stats?.overview?.totalEvaluations || 0}</div>
                 <p className="text-xs text-muted-foreground">
-                  Certificats obtenus
+                  Score moyen: {stats?.overview?.averageScore || 0}%
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Score Moyen</CardTitle>
-                <Award className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Progression</CardTitle>
+                <BarChart3 className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">85%</div>
+                <div className="text-2xl font-bold">
+                  {stats?.overview?.totalFormations > 0 
+                    ? Math.round((stats.overview.completedFormations / stats.overview.totalFormations) * 100)
+                    : 0}%
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  +5% ce mois
+                  Taux de completion
                 </p>
               </CardContent>
             </Card>
           </div>
+
+          {/* Progression des formations */}
+          {stats?.formationProgress && stats.formationProgress.length > 0 && (
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle>Progression des formations</CardTitle>
+                <CardDescription>
+                  Suivez votre avancement dans chaque formation
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {stats.formationProgress.map((formation: any) => (
+                    <div key={formation.formationId} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex-1">
+                        <h4 className="font-medium">{formation.title}</h4>
+                        <div className="flex items-center gap-2 mt-1">
+                          <div className="w-32 bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${formation.progress}%` }}
+                            />
+                          </div>
+                          <span className="text-sm text-gray-600">{formation.progress}%</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          formation.status === 'completed' 
+                            ? 'bg-green-100 text-green-800'
+                            : formation.status === 'in-progress'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {formation.status === 'completed' ? 'Terminée' : 
+                           formation.status === 'in-progress' ? 'En cours' : 'Non commencée'}
+                        </span>
+                        <Link href={`/dashboard/membre/formations/${formation.formationId}`}>
+                          <Button size="sm" variant="outline">
+                            Voir
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Quick Actions */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -102,12 +186,31 @@ export default function MembreDashboard() {
                     Mes Formations
                   </CardTitle>
                   <CardDescription>
-                    Continuer mes formations en cours
+                    Consultez et suivez vos formations
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-gray-600">
-                    2 formations en attente de votre attention
+                    {stats?.overview?.totalFormations || 0} formations disponibles
+                  </p>
+                </CardContent>
+              </Link>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+              <Link href="/dashboard/membre/resultats">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Award className="h-5 w-5 mr-2 text-green-600" />
+                    Mes Résultats
+                  </CardTitle>
+                  <CardDescription>
+                    Consultez vos résultats d'évaluations
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600">
+                    {stats?.overview?.totalEvaluations || 0} évaluations terminées
                   </p>
                 </CardContent>
               </Link>
@@ -117,75 +220,19 @@ export default function MembreDashboard() {
               <Link href="/dashboard/membre/departement">
                 <CardHeader>
                   <CardTitle className="flex items-center">
-                    <Users className="h-5 w-5 mr-2 text-green-600" />
+                    <Users className="h-5 w-5 mr-2 text-purple-600" />
                     Mon Département
                   </CardTitle>
                   <CardDescription>
-                    Voir les membres de mon département
+                    Découvrez votre équipe
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-gray-600">
-                    Connectez-vous avec vos collègues
+                    Département: {user?.department?.name || 'Non assigné'}
                   </p>
                 </CardContent>
               </Link>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-              <Link href="/dashboard/membre/profil">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Award className="h-5 w-5 mr-2 text-purple-600" />
-                    Mon Profil
-                  </CardTitle>
-                  <CardDescription>
-                    Gérer mes informations personnelles
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-600">
-                    Modifier vos informations et préférences
-                  </p>
-                </CardContent>
-              </Link>
-            </Card>
-          </div>
-
-          {/* Recent Activity */}
-          <div className="mt-8">
-            <Card>
-              <CardHeader>
-                <CardTitle>Activité Récente</CardTitle>
-                <CardDescription>
-                  Vos dernières activités de formation
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <div>
-                      <p className="text-sm font-medium">Formation "Leadership" terminée</p>
-                      <p className="text-xs text-gray-500">Il y a 2 heures</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <div>
-                      <p className="text-sm font-medium">Évaluation "Communication" complétée</p>
-                      <p className="text-xs text-gray-500">Il y a 1 jour</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                    <div>
-                      <p className="text-sm font-medium">Nouvelle formation disponible</p>
-                      <p className="text-xs text-gray-500">Il y a 3 jours</p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
             </Card>
           </div>
         </main>

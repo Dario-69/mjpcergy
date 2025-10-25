@@ -10,13 +10,13 @@ import { Badge } from "@/components/ui/badge";
 import { Users, Search, Plus, Edit, Trash2, UserCheck, UserX } from "lucide-react";
 
 interface User {
-  _id: string;
+  id: string;
   name: string;
   email: string;
   role: string;
   isActive: boolean;
   department?: {
-    _id: string;
+    id: string;
     name: string;
   };
   createdAt: string;
@@ -75,7 +75,7 @@ export default function MembresPage() {
 
       if (response.ok) {
         setUsers(users.map(user => 
-          user._id === userId ? { ...user, isActive: !isActive } : user
+          user.id === userId ? { ...user, isActive: !isActive } : user
         ));
       }
     } catch (error) {
@@ -88,7 +88,7 @@ export default function MembresPage() {
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = filterRole === "all" || user.role === filterRole;
     const matchesDepartment = filterDepartment === "all" || 
-                             (user.department && user.department._id === filterDepartment);
+                             (user.department && user.department.id === filterDepartment);
     
     return matchesSearch && matchesRole && matchesDepartment;
   });
@@ -141,7 +141,7 @@ export default function MembresPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {departments.map((dept) => (
-                      <SelectItem key={dept._id} value={dept._id}>
+                      <SelectItem key={dept.id} value={dept.id}>
                         {dept.name}
                       </SelectItem>
                     ))}
@@ -187,7 +187,7 @@ export default function MembresPage() {
               <SelectContent>
                 <SelectItem value="all">Tous les départements</SelectItem>
                 {departments.map((dept) => (
-                  <SelectItem key={dept._id} value={dept._id}>
+                  <SelectItem key={dept.id} value={dept.id}>
                     {dept.name}
                   </SelectItem>
                 ))}
@@ -203,7 +203,7 @@ export default function MembresPage() {
       {/* Users List */}
       <div className="grid gap-4">
         {filteredUsers.map((user) => (
-          <Card key={user._id}>
+          <Card key={user.id}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
@@ -242,7 +242,7 @@ export default function MembresPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => toggleUserStatus(user._id, user.isActive)}
+                    onClick={() => toggleUserStatus(user.id, user.isActive)}
                   >
                     {user.isActive ? (
                       <UserX className="h-4 w-4" />

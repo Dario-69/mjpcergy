@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
-import connectDB from "@/lib/mongodb";
-import User from "@/models/User";
+import { adminDb } from "@/lib/firebase-admin";
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,14 +16,21 @@ export async function POST(request: NextRequest) {
     // Vérifier le refresh token
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET!) as { userId: string };
     
-    await connectDB();
-
     // Vérifier que l'utilisateur existe toujours
-    const user = await User.findById(decoded.userId);
+    const userDoc = await adminDb.collection('users').doc(decoded.userId).get();
     
-    if (!user || !user.isActive) {
+    if (!userDoc.exists) {
       return NextResponse.json(
-        { message: "Utilisateur non trouvé ou inactif" },
+        { message: "Utilisateur non trouvé" },
+        { status: 401 }
+      );
+    }
+
+    const user = userDoc.data();
+    
+    if (!user?.isActive) {
+      return NextResponse.json(
+        { message: "Utilisateur inactif" },
         { status: 401 }
       );
     }
@@ -32,7 +38,7 @@ export async function POST(request: NextRequest) {
     // Créer un nouveau access token
     const accessToken = jwt.sign(
       { 
-        userId: user._id, 
+        userId: userDoc.id, 
         email: user.email, 
         role: user.role 
       },

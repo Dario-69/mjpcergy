@@ -1,25 +1,55 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
-import Formation from "@/models/Formation";
+import { adminDb } from "@/lib/firebase-admin";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB();
-
-    const formation = await Formation.findById(params.id)
-      .populate('department', 'name description')
-      .populate('createdBy', 'name email role')
-      .populate('evaluation', 'questions');
-
-    if (!formation) {
+    const formationId = params.id;
+    
+    const formationDoc = await adminDb.collection('formations').doc(formationId).get();
+    
+    if (!formationDoc.exists) {
       return NextResponse.json(
         { message: "Formation non trouvée" },
         { status: 404 }
       );
     }
+
+    const formationData = formationDoc.data();
+    
+    // Récupérer le département
+    let departmentData = null;
+    if (formationData?.departmentId) {
+      const departmentDoc = await adminDb.collection('departments').doc(formationData.departmentId).get();
+      if (departmentDoc.exists) {
+        departmentData = {
+          id: departmentDoc.id,
+          name: departmentDoc.data()?.name
+        };
+      }
+    }
+
+    // Récupérer le créateur
+    let creatorData = null;
+    if (formationData?.createdById) {
+      const creatorDoc = await adminDb.collection('users').doc(formationData.createdById).get();
+      if (creatorDoc.exists) {
+        creatorData = {
+          id: creatorDoc.id,
+          name: creatorDoc.data()?.name,
+          email: creatorDoc.data()?.email
+        };
+      }
+    }
+
+    const formation = {
+      id: formationDoc.id,
+      ...formationData,
+      department: departmentData,
+      createdBy: creatorData
+    };
 
     return NextResponse.json(formation);
   } catch (error) {
@@ -36,65 +66,52 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { 
-      title, 
-      description, 
-      department, 
-      isArchived,
-      modules,
-      tags,
-      thumbnailUrl
-    } = await request.json();
+    const formationId = params.id;
+    const { title, description, department, modules, tags, estimatedDuration, difficulty } = await request.json();
 
-    await connectDB();
+    if (!title || !description || !department) {
+      return NextResponse.json(
+        { message: "Titre, description et département requis" },
+        { status: 400 }
+      );
+    }
 
-    const formation = await Formation.findById(params.id);
-    if (!formation) {
+    // Vérifier que la formation existe
+    const formationDoc = await adminDb.collection('formations').doc(formationId).get();
+    if (!formationDoc.exists) {
       return NextResponse.json(
         { message: "Formation non trouvée" },
         { status: 404 }
       );
     }
 
-    // Vérifier que le département existe (si fourni)
-    if (department) {
-      const Department = require("@/models/Department");
-      const departmentExists = await Department.findById(department);
-      if (!departmentExists) {
-        return NextResponse.json(
-          { message: "Département non trouvé" },
-          { status: 400 }
-        );
-      }
+    // Vérifier que le département existe
+    const departmentDoc = await adminDb.collection('departments').doc(department).get();
+    if (!departmentDoc.exists) {
+      return NextResponse.json(
+        { message: "Département non trouvé" },
+        { status: 400 }
+      );
     }
 
-    // Mettre à jour les champs
-    if (title) formation.title = title;
-    if (description) formation.description = description;
-    if (department) formation.department = department;
-    if (typeof isArchived === 'boolean') formation.isArchived = isArchived;
-    if (modules) {
-      formation.modules = modules;
-      // Recalculer la durée estimée
-      const estimatedDuration = modules.reduce((total: number, module: any) => {
-        return total + (module.videos?.reduce((videoTotal: number, video: any) => {
-          return videoTotal + (video.duration || 0);
-        }, 0) || 0);
-      }, 0);
-      formation.estimatedDuration = Math.round(estimatedDuration / 60);
-    }
-    if (tags) formation.tags = tags;
-    if (thumbnailUrl !== undefined) formation.thumbnailUrl = thumbnailUrl;
+    const updateData = {
+      title,
+      description,
+      departmentId: department,
+      modules: modules || [],
+      tags: tags || [],
+      estimatedDuration: estimatedDuration || null,
+      difficulty: difficulty || 'débutant',
+      updatedAt: new Date()
+    };
 
-    await formation.save();
+    await adminDb.collection('formations').doc(formationId).update(updateData);
 
-    // Retourner la formation mise à jour avec les relations peuplées
-    const updatedFormation = await Formation.findById(params.id)
-      .populate('department', 'name description')
-      .populate('createdBy', 'name email role')
-      .populate('evaluation', 'questions');
+    return NextResponse.json({
+      message: "Formation mise à jour avec succès",
+      id: formationId
+    });
 
-    return NextResponse.json(updatedFormation);
   } catch (error) {
     console.error("Erreur lors de la mise à jour de la formation:", error);
     return NextResponse.json(
@@ -109,23 +126,29 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB();
+    const formationId = params.id;
 
-    const formation = await Formation.findById(params.id);
-    if (!formation) {
+    // Vérifier que la formation existe
+    const formationDoc = await adminDb.collection('formations').doc(formationId).get();
+    if (!formationDoc.exists) {
       return NextResponse.json(
         { message: "Formation non trouvée" },
         { status: 404 }
       );
     }
 
-    // Archiver la formation au lieu de la supprimer
-    formation.isArchived = true;
-    await formation.save();
+    // Marquer comme archivée au lieu de supprimer
+    await adminDb.collection('formations').doc(formationId).update({
+      isArchived: true,
+      updatedAt: new Date()
+    });
 
-    return NextResponse.json({ message: "Formation archivée" });
+    return NextResponse.json({
+      message: "Formation archivée avec succès"
+    });
+
   } catch (error) {
-    console.error("Erreur lors de la suppression de la formation:", error);
+    console.error("Erreur lors de l'archivage de la formation:", error);
     return NextResponse.json(
       { message: "Erreur interne du serveur" },
       { status: 500 }

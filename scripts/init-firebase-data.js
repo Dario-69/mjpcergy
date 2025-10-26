@@ -72,7 +72,7 @@ async function initFirebaseData() {
     
     const adminUser = {
       name: 'Administrateur',
-      email: 'admin@mjp.com',
+      email: 'admin@auxano.com',
       password: hashedPassword,
       role: 'responsable',
       isActive: true,
@@ -81,7 +81,7 @@ async function initFirebaseData() {
     };
 
     const adminRef = await db.collection('users').add(adminUser);
-    console.log(`✅ Administrateur créé: admin@mjp.com / admin123 (${adminRef.id})`);
+    console.log(`✅ Administrateur créé: admin@auxano.com / admin123 (${adminRef.id})`);
 
     // Créer quelques membres de test
     console.log('👥 Création des membres de test...');
@@ -91,7 +91,7 @@ async function initFirebaseData() {
     const testUsers = [
       {
         name: 'Jean Dupont',
-        email: 'jean@mjp.com',
+        email: 'jean@auxano.com',
         password: await bcrypt.hash('password123', 12),
         role: 'membre',
         departmentId: musicDept.id,
@@ -101,7 +101,7 @@ async function initFirebaseData() {
       },
       {
         name: 'Marie Martin',
-        email: 'marie@mjp.com',
+        email: 'marie@auxano.com',
         password: await bcrypt.hash('password123', 12),
         role: 'membre',
         departmentId: multimediaDept.id,
@@ -195,9 +195,9 @@ async function initFirebaseData() {
 
     console.log('\n🎉 Initialisation terminée avec succès !');
     console.log('\n📋 Comptes créés :');
-    console.log('- admin@mjp.com / admin123 (Responsable)');
-    console.log('- jean@mjp.com / password123 (Membre - Musique)');
-    console.log('- marie@mjp.com / password123 (Membre - Multimédia)');
+    console.log('- admin@auxano.com / admin123 (Responsable)');
+    console.log('- jean@auxano.com / password123 (Membre - Musique)');
+    console.log('- marie@auxano.com / password123 (Membre - Multimédia)');
     console.log('\n📊 Données créées :');
     console.log('- 5 départements');
     console.log('- 2 formations avec vidéos');

@@ -40,9 +40,16 @@ export default function ResponsableLayout({
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
           <div className="fixed inset-y-0 left-0 flex w-80 sm:w-72 flex-col glass border-r border-white/20 shadow-2xl animate-fade-in-left">
             <div className="flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6">
-              <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                MJP Training
-              </h1>
+              <div className="flex items-center">
+                <img 
+                  src="/AUXANO.svg" 
+                  alt="AUXANO Logo" 
+                  className="h-8 w-8 mr-2"
+                />
+                <h1 className="text-lg sm:text-xl font-bold text-[#1b1d19]">
+                  AUXANO
+                </h1>
+              </div>
               <button 
                 onClick={() => setSidebarOpen(false)}
                 className="p-1.5 sm:p-2 rounded-lg hover:bg-white/20 transition-all-smooth"
@@ -59,7 +66,7 @@ export default function ResponsableLayout({
                     href={item.href}
                     className={`flex items-center px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl text-sm font-medium transition-all-smooth group ${
                       isActive
-                        ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-medium'
+                        ? 'bg-[#1b1d19] text-[#ececec] shadow-medium'
                         : 'text-gray-600 hover:bg-white/30 hover:text-gray-900'
                     }`}
                     onClick={() => setSidebarOpen(false)}
@@ -76,8 +83,8 @@ export default function ResponsableLayout({
             <div className="border-t border-white/20 p-3 sm:p-4">
               <div className="flex items-center mb-3 sm:mb-4">
                 <div className="flex-shrink-0">
-                  <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center shadow-medium">
-                    <span className="text-xs sm:text-sm font-medium text-white">
+                  <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-[#1b1d19] flex items-center justify-center shadow-medium">
+                    <span className="text-xs sm:text-sm font-medium text-[#ececec]">
                       {user?.name?.charAt(0)}
                     </span>
                   </div>
@@ -104,9 +111,16 @@ export default function ResponsableLayout({
         <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col">
           <div className="flex flex-grow flex-col overflow-y-auto glass border-r border-white/20 shadow-2xl">
             <div className="flex h-16 items-center px-6">
-              <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                MJP Training
-              </h1>
+              <div className="flex items-center">
+                <img 
+                  src="/AUXANO.svg" 
+                  alt="AUXANO Logo" 
+                  className="h-8 w-8 mr-2"
+                />
+                <h1 className="text-xl font-bold text-[#1b1d19]">
+                  AUXANO
+                </h1>
+              </div>
             </div>
             <nav className="flex-1 px-4 py-6 space-y-1">
               {navigation.map((item, index) => {
@@ -117,7 +131,7 @@ export default function ResponsableLayout({
                     href={item.href}
                     className={`flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-all-smooth group animate-fade-in-left ${
                       isActive
-                        ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-medium'
+                        ? 'bg-[#1b1d19] text-[#ececec] shadow-medium'
                         : 'text-gray-600 hover:bg-white/30 hover:text-gray-900'
                     }`}
                     style={{ animationDelay: `${index * 0.1}s` }}
@@ -133,8 +147,8 @@ export default function ResponsableLayout({
             <div className="border-t border-white/20 p-3 sm:p-4">
               <div className="flex items-center mb-3 sm:mb-4">
                 <div className="flex-shrink-0">
-                  <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center shadow-medium">
-                    <span className="text-xs sm:text-sm font-medium text-white">
+                  <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-[#1b1d19] flex items-center justify-center shadow-medium">
+                    <span className="text-xs sm:text-sm font-medium text-[#ececec]">
                       {user?.name?.charAt(0)}
                     </span>
                   </div>

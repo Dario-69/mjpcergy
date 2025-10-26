@@ -15,7 +15,7 @@ async function testAuthAPI() {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        email: 'admin@mjp.com',
+        email: 'admin@auxano.com',
         password: 'admin123'
       })
     });
@@ -35,7 +35,7 @@ async function testAuthAPI() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: 'jean@mjp.com',
+          email: 'jean@auxano.com',
           password: 'password123'
         })
       });

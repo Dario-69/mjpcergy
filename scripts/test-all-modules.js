@@ -114,9 +114,9 @@ async function testAllModules() {
 
     console.log('\n🚀 L\'application est prête à être utilisée !');
     console.log('\n📋 Comptes de test disponibles :');
-    console.log('- admin@mjp.com / admin123 (Responsable)');
-    console.log('- jean@mjp.com / password123 (Membre - Musique)');
-    console.log('- marie@mjp.com / password123 (Membre - Multimédia)');
+    console.log('- admin@auxano.com / admin123 (Responsable)');
+    console.log('- jean@auxano.com / password123 (Membre - Musique)');
+    console.log('- marie@auxano.com / password123 (Membre - Multimédia)');
 
   } catch (error) {
     console.error('❌ Erreur lors des tests:', error);

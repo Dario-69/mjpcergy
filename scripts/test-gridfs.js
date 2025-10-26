@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const { GridFSBucket } = require('mongodb');
 
 // Configuration
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/mjp-training';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/auxano';
 
 async function testGridFS() {
   try {
@@ -77,7 +77,7 @@ async function testGridFS() {
 if (!process.env.MONGODB_URI) {
   console.error('❌ MONGODB_URI n\'est pas défini dans les variables d\'environnement');
   console.log('💡 Assurez-vous que votre fichier .env.local contient:');
-  console.log('   MONGODB_URI=mongodb://localhost:27017/mjp-training');
+  console.log('   MONGODB_URI=mongodb://localhost:27017/auxano');
   process.exit(1);
 }
 

@@ -1,4 +1,4 @@
-# MJP Training App
+# AUXANO - Formation & Développement
 
 Application web de formation pour l'église des jeunes avec fonctionnalités PWA.
 
@@ -47,7 +47,7 @@ Application web de formation pour l'église des jeunes avec fonctionnalités PWA
    Variables requises dans `.env.local` :
    ```env
    # MongoDB
-   MONGODB_URI=mongodb://localhost:27017/mjp-training
+   MONGODB_URI=mongodb://localhost:27017/auxano
    
    # Vimeo API (OBLIGATOIRE pour l'upload de vidéos)
    VIMEO_ACCESS_TOKEN=your-vimeo-access-token-here

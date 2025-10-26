@@ -16,11 +16,13 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4 sm:py-6">
             <div className="flex items-center animate-fade-in-left">
-              <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 mr-2 sm:mr-3">
-                <GraduationCap className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-              </div>
-              <h1 className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                MJP Training
+              <img 
+                src="/AUXANO.svg" 
+                alt="AUXANO Logo" 
+                className="h-8 w-8 sm:h-10 sm:w-10 mr-2 sm:mr-3"
+              />
+              <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-[#1b1d19]">
+                AUXANO
               </h1>
             </div>
             <div className="flex items-center space-x-2 sm:space-x-4 animate-fade-in-right">
@@ -66,7 +68,7 @@ export default function Home() {
         <div className="text-center mb-12 sm:mb-16 lg:mb-20">
           <div className="animate-fade-in-up">
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-4 sm:mb-6 px-4">
-              <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              <span className="text-[#1b1d19]">
                 Formation pour l'Église des Jeunes
               </span>
             </h1>
@@ -90,8 +92,8 @@ export default function Home() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 mb-12 sm:mb-16 lg:mb-20">
           <Card className="text-center hover-lift shadow-soft animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
             <CardHeader className="pb-4">
-              <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 mx-auto mb-3 sm:mb-4 w-fit">
-                <Users className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+              <div className="p-3 sm:p-4 rounded-xl bg-[#1b1d19] mx-auto mb-3 sm:mb-4 w-fit">
+                <Users className="h-6 w-6 sm:h-8 sm:w-8 text-[#ececec]" />
               </div>
               <CardTitle className="text-base sm:text-lg font-semibold">Gestion des Membres</CardTitle>
             </CardHeader>
@@ -104,8 +106,8 @@ export default function Home() {
 
           <Card className="text-center hover-lift shadow-soft animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
             <CardHeader className="pb-4">
-              <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-r from-green-500 to-green-600 mx-auto mb-3 sm:mb-4 w-fit">
-                <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+              <div className="p-3 sm:p-4 rounded-xl bg-[#1b1d19] mx-auto mb-3 sm:mb-4 w-fit">
+                <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-[#ececec]" />
               </div>
               <CardTitle className="text-base sm:text-lg font-semibold">Formations Vidéo</CardTitle>
             </CardHeader>
@@ -118,8 +120,8 @@ export default function Home() {
 
           <Card className="text-center hover-lift shadow-soft animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
             <CardHeader className="pb-4">
-              <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 mx-auto mb-3 sm:mb-4 w-fit">
-                <GraduationCap className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+              <div className="p-3 sm:p-4 rounded-xl bg-[#1b1d19] mx-auto mb-3 sm:mb-4 w-fit">
+                <GraduationCap className="h-6 w-6 sm:h-8 sm:w-8 text-[#ececec]" />
               </div>
               <CardTitle className="text-base sm:text-lg font-semibold">Évaluations</CardTitle>
             </CardHeader>
@@ -132,8 +134,8 @@ export default function Home() {
 
           <Card className="text-center hover-lift shadow-soft animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
             <CardHeader className="pb-4">
-              <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 mx-auto mb-3 sm:mb-4 w-fit">
-                <BarChart3 className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+              <div className="p-3 sm:p-4 rounded-xl bg-[#1b1d19] mx-auto mb-3 sm:mb-4 w-fit">
+                <BarChart3 className="h-6 w-6 sm:h-8 sm:w-8 text-[#ececec]" />
               </div>
               <CardTitle className="text-base sm:text-lg font-semibold">Suivi des Progrès</CardTitle>
             </CardHeader>
@@ -148,7 +150,7 @@ export default function Home() {
         {/* CTA Section moderne - Responsive */}
         <div className="glass rounded-xl sm:rounded-2xl shadow-large p-6 sm:p-8 lg:p-12 text-center animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 sm:mb-6">
-            <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+            <span className="text-[#1b1d19]">
               Prêt à commencer votre formation ?
             </span>
           </h2>
@@ -166,14 +168,16 @@ export default function Home() {
       <footer className="glass border-t border-white/20 mt-12 sm:mt-16 lg:mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 text-center">
           <div className="flex items-center justify-center mb-3 sm:mb-4">
-            <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 mr-2 sm:mr-3">
-              <GraduationCap className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-            </div>
-            <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              MJP Training
+            <img 
+              src="/AUXANO.svg" 
+              alt="AUXANO Logo" 
+              className="h-8 w-8 sm:h-10 sm:w-10 mr-2 sm:mr-3"
+            />
+            <span className="text-lg sm:text-xl font-bold text-[#1b1d19]">
+              AUXANO
             </span>
           </div>
-          <p className="text-sm sm:text-base text-gray-600">&copy; 2024 MJP Training App. Tous droits réservés.</p>
+          <p className="text-sm sm:text-base text-gray-600">&copy; 2024 AUXANO. Tous droits réservés.</p>
         </div>
       </footer>
     </div>

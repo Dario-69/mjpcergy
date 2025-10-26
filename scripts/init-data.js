@@ -7,7 +7,7 @@ const Department = require('../src/models/Department');
 const Formation = require('../src/models/Formation');
 const Evaluation = require('../src/models/Evaluation');
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/mjp-training';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/auxano';
 
 async function initData() {
   try {
@@ -56,14 +56,14 @@ async function initData() {
     
     const adminUser = new User({
       name: 'Administrateur',
-      email: 'admin@mjp.com',
+      email: 'admin@auxano.com',
       password: hashedPassword,
       role: 'responsable',
       isActive: true
     });
 
     await adminUser.save();
-    console.log('Utilisateur administrateur créé (admin@mjp.com / admin123)');
+    console.log('Utilisateur administrateur créé (admin@auxano.com / admin123)');
 
     // Créer quelques membres de test
     const musicDept = createdDepartments.find(d => d.name === 'Musique');
@@ -72,7 +72,7 @@ async function initData() {
     const testUsers = [
       {
         name: 'Jean Dupont',
-        email: 'jean@mjp.com',
+        email: 'jean@auxano.com',
         password: await bcrypt.hash('password123', 12),
         role: 'membre',
         department: musicDept._id,
@@ -80,7 +80,7 @@ async function initData() {
       },
       {
         name: 'Marie Martin',
-        email: 'marie@mjp.com',
+        email: 'marie@auxano.com',
         password: await bcrypt.hash('password123', 12),
         role: 'membre',
         department: multimediaDept._id,
@@ -151,9 +151,9 @@ async function initData() {
 
     console.log('Initialisation terminée avec succès !');
     console.log('\nComptes créés :');
-    console.log('- admin@mjp.com / admin123 (Responsable)');
-    console.log('- jean@mjp.com / password123 (Membre - Musique)');
-    console.log('- marie@mjp.com / password123 (Membre - Multimédia)');
+    console.log('- admin@auxano.com / admin123 (Responsable)');
+    console.log('- jean@auxano.com / password123 (Membre - Musique)');
+    console.log('- marie@auxano.com / password123 (Membre - Multimédia)');
     console.log('\nDonnées créées :');
     console.log('- 5 départements');
     console.log('- 2 formations avec vidéos');

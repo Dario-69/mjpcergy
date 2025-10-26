@@ -40,7 +40,14 @@ export default function MembreLayout({
           <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
           <div className="fixed inset-y-0 left-0 flex w-64 flex-col bg-white shadow-xl">
             <div className="flex h-16 items-center justify-between px-4">
-              <h1 className="text-xl font-bold text-gray-900">MJP Training</h1>
+              <div className="flex items-center">
+                <img 
+                  src="/AUXANO.svg" 
+                  alt="AUXANO Logo" 
+                  className="h-8 w-8 mr-2"
+                />
+                <h1 className="text-xl font-bold text-[#1b1d19]">AUXANO</h1>
+              </div>
               <button onClick={() => setSidebarOpen(false)}>
                 <X className="h-6 w-6" />
               </button>
@@ -54,7 +61,7 @@ export default function MembreLayout({
                     href={item.href}
                     className={`flex items-center px-3 py-2 rounded-md text-sm font-medium ${
                       isActive
-                        ? 'bg-blue-100 text-blue-700'
+                        ? 'bg-[#1b1d19] text-[#ececec]'
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                     }`}
                     onClick={() => setSidebarOpen(false)}
@@ -68,8 +75,8 @@ export default function MembreLayout({
             <div className="border-t border-gray-200 p-4">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className="h-8 w-8 rounded-full bg-green-500 flex items-center justify-center">
-                    <span className="text-sm font-medium text-white">
+                  <div className="h-8 w-8 rounded-full bg-[#1b1d19] flex items-center justify-center">
+                    <span className="text-sm font-medium text-[#ececec]">
                       {user?.name?.charAt(0)}
                     </span>
                   </div>
@@ -96,7 +103,14 @@ export default function MembreLayout({
         <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
           <div className="flex flex-grow flex-col overflow-y-auto bg-white shadow">
             <div className="flex h-16 items-center px-4">
-              <h1 className="text-xl font-bold text-gray-900">MJP Training</h1>
+              <div className="flex items-center">
+                <img 
+                  src="/AUXANO.svg" 
+                  alt="AUXANO Logo" 
+                  className="h-8 w-8 mr-2"
+                />
+                <h1 className="text-xl font-bold text-[#1b1d19]">AUXANO</h1>
+              </div>
             </div>
             <nav className="flex-1 px-4 py-4 space-y-2">
               {navigation.map((item) => {
@@ -107,7 +121,7 @@ export default function MembreLayout({
                     href={item.href}
                     className={`flex items-center px-3 py-2 rounded-md text-sm font-medium ${
                       isActive
-                        ? 'bg-blue-100 text-blue-700'
+                        ? 'bg-[#1b1d19] text-[#ececec]'
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                     }`}
                   >
@@ -120,8 +134,8 @@ export default function MembreLayout({
             <div className="border-t border-gray-200 p-4">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className="h-8 w-8 rounded-full bg-green-500 flex items-center justify-center">
-                    <span className="text-sm font-medium text-white">
+                  <div className="h-8 w-8 rounded-full bg-[#1b1d19] flex items-center justify-center">
+                    <span className="text-sm font-medium text-[#ececec]">
                       {user?.name?.charAt(0)}
                     </span>
                   </div>

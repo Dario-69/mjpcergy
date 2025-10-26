@@ -45,15 +45,19 @@ export default function SignIn() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <GraduationCap className="h-12 w-12 text-blue-600" />
+            <img 
+              src="/AUXANO.svg" 
+              alt="AUXANO Logo" 
+              className="h-16 w-16"
+            />
           </div>
-          <CardTitle className="text-2xl">Connexion</CardTitle>
+          <CardTitle className="text-2xl text-[#1b1d19]">Connexion</CardTitle>
           <CardDescription>
-            Connectez-vous à votre compte MJP Training
+            Connectez-vous à votre compte AUXANO
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -105,7 +109,7 @@ export default function SignIn() {
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
               Pas encore de compte ?{" "}
-              <Link href="/auth/signup" className="text-blue-600 hover:underline">
+              <Link href="/auth/signup" className="text-[#1b1d19] hover:underline font-semibold">
                 Créer un compte
               </Link>
             </p>

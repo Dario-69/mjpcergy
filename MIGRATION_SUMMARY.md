@@ -50,7 +50,7 @@
 ### **Variables d'Environnement**
 ```env
 # Seulement MongoDB nécessaire
-MONGODB_URI=mongodb://localhost:27017/mjp-training
+MONGODB_URI=mongodb://localhost:27017/auxano
 NEXTAUTH_SECRET=your_secret_here
 JWT_SECRET=your_jwt_secret_here
 ```

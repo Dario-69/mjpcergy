@@ -3,9 +3,10 @@ import { adminDb } from "@/lib/firebase-admin";
 
 export async function GET(request: NextRequest) {
   try {
-    const departmentsSnapshot = await adminDb.collection('departments').orderBy('name').get();
+    // Récupérer les données sans orderBy pour éviter les problèmes d'index
+    const departmentsSnapshot = await adminDb.collection('departments').get();
     
-    const departments = [];
+    const departments: any[] = [];
     for (const doc of departmentsSnapshot.docs) {
       const data = doc.data();
       let referent = null;
@@ -28,6 +29,9 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Trier côté client par nom
+    departments.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    
     return NextResponse.json(departments);
   } catch (error) {
     console.error("Erreur lors de la récupération des départements:", error);

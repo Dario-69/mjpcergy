@@ -34,6 +34,15 @@ export default function FirebaseVideoPlayer({
   const fetchVideoUrl = async () => {
     try {
       setLoading(true);
+      
+      // Si c'est une URL Vimeo, l'utiliser directement
+      if (videoId.startsWith('https://player.vimeo.com/')) {
+        setVideoUrl(videoId);
+        setLoading(false);
+        return;
+      }
+      
+      // Sinon, essayer de récupérer depuis l'API Firebase
       const response = await fetch(`/api/videos?id=${videoId}`);
       if (response.ok) {
         const data = await response.json();

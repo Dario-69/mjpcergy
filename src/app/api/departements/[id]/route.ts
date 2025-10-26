@@ -3,10 +3,10 @@ import { adminDb } from "@/lib/firebase-admin";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const departmentId = params.id;
+    const { id: departmentId } = await params;
     
     const departmentDoc = await adminDb.collection('departments').doc(departmentId).get();
     
@@ -19,9 +19,16 @@ export async function GET(
 
     const departmentData = departmentDoc.data();
     
+    if (!departmentData) {
+      return NextResponse.json(
+        { message: "Données du département non trouvées" },
+        { status: 404 }
+      );
+    }
+    
     // Récupérer le référent si le département en a un
     let referentData = null;
-    if (departmentData?.referentId) {
+    if (departmentData.referentId) {
       const referentDoc = await adminDb.collection('users').doc(departmentData.referentId).get();
       if (referentDoc.exists) {
         referentData = {
@@ -54,11 +61,11 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const departmentId = params.id;
-    const { name, description, referentId, isActive } = await request.json();
+    const { id: departmentId } = await params;
+    const { name, description, referent, referentId, isActive } = await request.json();
 
     // Vérifier que le département existe
     const departmentDoc = await adminDb.collection('departments').doc(departmentId).get();
@@ -69,9 +76,12 @@ export async function PUT(
       );
     }
 
+    // Utiliser referent ou referentId (compatibilité)
+    const finalReferentId = referent || referentId;
+    
     // Vérifier que le référent existe (si fourni)
-    if (referentId) {
-      const referentDoc = await adminDb.collection('users').doc(referentId).get();
+    if (finalReferentId) {
+      const referentDoc = await adminDb.collection('users').doc(finalReferentId).get();
       if (!referentDoc.exists) {
         return NextResponse.json(
           { message: "Référent non trouvé" },
@@ -83,15 +93,40 @@ export async function PUT(
     const updateData = {
       name,
       description,
-      referentId: referentId || null,
+      referentId: finalReferentId || null,
       isActive,
       updatedAt: new Date()
     };
 
     await adminDb.collection('departments').doc(departmentId).update(updateData);
 
+    // Récupérer le département mis à jour avec le référent
+    const updatedDoc = await adminDb.collection('departments').doc(departmentId).get();
+    const updatedData = updatedDoc.data();
+    
+    if (!updatedData) {
+      return NextResponse.json(
+        { message: "Département non trouvé après mise à jour" },
+        { status: 404 }
+      );
+    }
+    
+    let referentData = null;
+    if (updatedData.referentId) {
+      const referentDoc = await adminDb.collection('users').doc(updatedData.referentId).get();
+      if (referentDoc.exists) {
+        referentData = {
+          id: referentDoc.id,
+          name: referentDoc.data()?.name,
+          email: referentDoc.data()?.email
+        };
+      }
+    }
+
     return NextResponse.json({
-      message: "Département mis à jour avec succès"
+      id: departmentId,
+      ...updatedData,
+      referent: referentData
     });
 
   } catch (error) {
@@ -105,10 +140,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const departmentId = params.id;
+    const { id: departmentId } = await params;
 
     // Vérifier que le département existe
     const departmentDoc = await adminDb.collection('departments').doc(departmentId).get();

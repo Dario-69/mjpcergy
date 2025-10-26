@@ -3,10 +3,10 @@ import { adminDb } from "@/lib/firebase-admin";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const formationId = params.id;
+    const { id: formationId } = await params;
     
     const formationDoc = await adminDb.collection('formations').doc(formationId).get();
     
@@ -63,18 +63,11 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const formationId = params.id;
-    const { title, description, department, modules, tags, estimatedDuration, difficulty } = await request.json();
-
-    if (!title || !description || !department) {
-      return NextResponse.json(
-        { message: "Titre, description et département requis" },
-        { status: 400 }
-      );
-    }
+    const { id: formationId } = await params;
+    const { title, description, department, modules, tags, estimatedDuration, difficulty, isArchived } = await request.json();
 
     // Vérifier que la formation existe
     const formationDoc = await adminDb.collection('formations').doc(formationId).get();
@@ -85,31 +78,84 @@ export async function PUT(
       );
     }
 
-    // Vérifier que le département existe
-    const departmentDoc = await adminDb.collection('departments').doc(department).get();
-    if (!departmentDoc.exists) {
+    const existingData = formationDoc.data();
+    if (!existingData) {
       return NextResponse.json(
-        { message: "Département non trouvé" },
+        { message: "Données de la formation non trouvées" },
+        { status: 404 }
+      );
+    }
+
+    // Pour les mises à jour partielles, utiliser les données existantes si non fournies
+    const finalTitle = title || existingData.title;
+    const finalDescription = description || existingData.description;
+    const finalDepartment = department || existingData.departmentId;
+
+    // Validation seulement si on met à jour ces champs
+    if (title && (!title || !description || !department)) {
+      return NextResponse.json(
+        { message: "Titre, description et département requis" },
         { status: 400 }
       );
     }
 
+    // Vérifier que le département existe (seulement si on le change)
+    if (department && department !== existingData.departmentId) {
+      const departmentDoc = await adminDb.collection('departments').doc(department).get();
+      if (!departmentDoc.exists) {
+        return NextResponse.json(
+          { message: "Département non trouvé" },
+          { status: 400 }
+        );
+      }
+    }
+
     const updateData = {
-      title,
-      description,
-      departmentId: department,
-      modules: modules || [],
-      tags: tags || [],
-      estimatedDuration: estimatedDuration || null,
-      difficulty: difficulty || 'débutant',
+      title: finalTitle,
+      description: finalDescription,
+      departmentId: finalDepartment,
+      modules: modules !== undefined ? modules : existingData.modules,
+      tags: tags !== undefined ? tags : existingData.tags,
+      estimatedDuration: estimatedDuration !== undefined ? estimatedDuration : existingData.estimatedDuration,
+      difficulty: difficulty || existingData.difficulty || 'débutant',
+      isArchived: isArchived !== undefined ? isArchived : existingData.isArchived,
       updatedAt: new Date()
     };
 
-    await adminDb.collection('formations').doc(formationId).update(updateData);
+    // Filtrer les valeurs undefined pour éviter les erreurs Firestore
+    const filteredUpdateData = Object.fromEntries(
+      Object.entries(updateData).filter(([_, value]) => value !== undefined)
+    );
+
+    await adminDb.collection('formations').doc(formationId).update(filteredUpdateData);
+
+    // Récupérer la formation mise à jour
+    const updatedDoc = await adminDb.collection('formations').doc(formationId).get();
+    const updatedData = updatedDoc.data();
+    
+    if (!updatedData) {
+      return NextResponse.json(
+        { message: "Formation non trouvée après mise à jour" },
+        { status: 404 }
+      );
+    }
+    
+    // Récupérer le département
+    let departmentData = null;
+    if (updatedData.departmentId) {
+      const departmentDoc = await adminDb.collection('departments').doc(updatedData.departmentId).get();
+      if (departmentDoc.exists) {
+        departmentData = {
+          id: departmentDoc.id,
+          name: departmentDoc.data()?.name
+        };
+      }
+    }
 
     return NextResponse.json({
-      message: "Formation mise à jour avec succès",
-      id: formationId
+      id: formationId,
+      ...updatedData,
+      department: departmentData
     });
 
   } catch (error) {
@@ -123,10 +169,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const formationId = params.id;
+    const { id: formationId } = await params;
 
     // Vérifier que la formation existe
     const formationDoc = await adminDb.collection('formations').doc(formationId).get();

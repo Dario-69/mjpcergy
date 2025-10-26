@@ -44,7 +44,10 @@ export default function MonProfilPage() {
     try {
       // Utiliser les données de l'utilisateur connecté
       if (user) {
-        setProfile(user);
+        setProfile({
+          ...user,
+          createdAt: new Date().toISOString()
+        });
         setFormData({
           name: user.name,
           email: user.email,

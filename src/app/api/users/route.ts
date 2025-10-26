@@ -19,7 +19,8 @@ export async function GET(request: NextRequest) {
       query = query.where('departmentId', '==', department) as any;
     }
 
-    const usersSnapshot = await query.orderBy('createdAt', 'desc').get();
+    // Récupérer les données sans orderBy pour éviter les problèmes d'index
+    const usersSnapshot = await query.get();
     
     const users = [];
     for (const doc of usersSnapshot.docs) {
@@ -49,6 +50,9 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Trier côté client par date de création (plus récent en premier)
+    users.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    
     return NextResponse.json(users);
   } catch (error) {
     console.error("Erreur lors de la récupération des utilisateurs:", error);

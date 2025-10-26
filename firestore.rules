@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Règles temporaires pour le développement
+    // ATTENTION: Ces règles permettent l'accès complet - à modifier pour la production
+    
+    // Utilisateurs - accès complet pour le développement
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+    
+    // Départements - accès complet pour le développement
+    match /departments/{departmentId} {
+      allow read, write: if true;
+    }
+    
+    // Formations - accès complet pour le développement
+    match /formations/{formationId} {
+      allow read, write: if true;
+    }
+    
+    // Évaluations - accès complet pour le développement
+    match /evaluations/{evaluationId} {
+      allow read, write: if true;
+    }
+    
+    // Résultats d'évaluations - accès complet pour le développement
+    match /evaluationResults/{resultId} {
+      allow read, write: if true;
+    }
+    
+    // Progrès utilisateur - accès complet pour le développement
+    match /userProgress/{progressId} {
+      allow read, write: if true;
+    }
+    
+    // Vidéos - accès complet pour le développement
+    match /videos/{videoId} {
+      allow read, write: if true;
+    }
+    
+    // Collection de test - accès complet pour le développement
+    match /test/{document} {
+      allow read, write: if true;
+    }
+  }
+}

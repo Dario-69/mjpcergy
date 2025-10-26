@@ -16,7 +16,6 @@ export async function GET(request: NextRequest) {
     // Récupérer les résultats d'évaluation de l'utilisateur
     const resultsSnapshot = await adminDb.collection('evaluationResults')
       .where('userId', '==', userId)
-      .orderBy('completedAt', 'desc')
       .get();
 
     const results = [];
@@ -47,6 +46,9 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Trier côté client par date de completion (plus récent en premier)
+    results.sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
+    
     return NextResponse.json(results);
   } catch (error) {
     console.error("Erreur lors de la récupération des résultats:", error);

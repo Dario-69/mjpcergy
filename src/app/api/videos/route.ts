@@ -21,6 +21,13 @@ export async function GET(request: NextRequest) {
 
       const videoData = videoDoc.data();
       
+      if (!videoData) {
+        return NextResponse.json(
+          { message: "Données de la vidéo non trouvées" },
+          { status: 404 }
+        );
+      }
+      
       // Retourner l'URL de téléchargement stockée dans Firestore
       return NextResponse.json({
         id: videoDoc.id,

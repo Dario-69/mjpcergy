@@ -31,6 +31,14 @@ export default function MembresPage() {
   const [filterDepartment, setFilterDepartment] = useState("all");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    email: '',
+    departmentId: '',
+    isActive: true
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     fetchUsers();
@@ -63,6 +71,44 @@ export default function MembresPage() {
     }
   };
 
+  const updateUser = async () => {
+    if (!selectedUser) return;
+    
+    setIsSubmitting(true);
+    setError('');
+    
+    try {
+      const response = await fetch(`/api/users/${selectedUser.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: editForm.name,
+          email: editForm.email,
+          departmentId: editForm.departmentId || undefined,
+          isActive: editForm.isActive,
+        }),
+      });
+
+      if (response.ok) {
+        const updatedUser = await response.json();
+        setUsers(users.map(user => 
+          user.id === selectedUser.id ? updatedUser : user
+        ));
+        setIsEditDialogOpen(false);
+        setSelectedUser(null);
+      } else {
+        const errorData = await response.json();
+        setError(errorData.message || 'Erreur lors de la modification');
+      }
+    } catch (error) {
+      setError('Erreur lors de la modification de l\'utilisateur');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const toggleUserStatus = async (userId: string, isActive: boolean) => {
     try {
       const response = await fetch(`/api/users/${userId}`, {
@@ -81,6 +127,17 @@ export default function MembresPage() {
     } catch (error) {
       console.error('Erreur lors de la mise à jour du statut:', error);
     }
+  };
+
+  const handleEditClick = (user: User) => {
+    setSelectedUser(user);
+    setEditForm({
+      name: user.name,
+      email: user.email,
+      departmentId: user.department?.id || '',
+      isActive: user.isActive
+    });
+    setIsEditDialogOpen(true);
   };
 
   const filteredUsers = users.filter(user => {
@@ -151,6 +208,89 @@ export default function MembresPage() {
               <div className="flex justify-end space-x-2">
                 <Button variant="outline">Annuler</Button>
                 <Button>Créer le membre</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+        
+        {/* Dialog d'édition */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Modifier le membre</DialogTitle>
+              <DialogDescription>
+                Modifiez les informations de {selectedUser?.name}.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
+                  {error}
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nom complet</label>
+                <Input 
+                  placeholder="Nom du membre" 
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <Input 
+                  placeholder="email@example.com" 
+                  type="email" 
+                  value={editForm.email}
+                  onChange={(e) => setEditForm({...editForm, email: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Département</label>
+                <Select value={editForm.departmentId || "none"} onValueChange={(value) => setEditForm({...editForm, departmentId: value === "none" ? "" : value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un département" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Aucun département</SelectItem>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="isActive"
+                  checked={editForm.isActive}
+                  onChange={(e) => setEditForm({...editForm, isActive: e.target.checked})}
+                  className="rounded border-gray-300"
+                />
+                <label htmlFor="isActive" className="text-sm font-medium text-gray-700">
+                  Compte actif
+                </label>
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsEditDialogOpen(false);
+                    setSelectedUser(null);
+                    setError('');
+                  }}
+                  disabled={isSubmitting}
+                >
+                  Annuler
+                </Button>
+                <Button 
+                  onClick={updateUser}
+                  disabled={isSubmitting || !editForm.name.trim() || !editForm.email.trim()}
+                >
+                  {isSubmitting ? "Modification..." : "Modifier le membre"}
+                </Button>
               </div>
             </div>
           </DialogContent>
@@ -232,10 +372,7 @@ export default function MembresPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => {
-                      setSelectedUser(user);
-                      setIsEditDialogOpen(true);
-                    }}
+                    onClick={() => handleEditClick(user)}
                   >
                     <Edit className="h-4 w-4" />
                   </Button>

@@ -114,7 +114,7 @@ export default function FormationDetailPage() {
 
     try {
       const updatedCompletedVideos = [...(progress.completedVideos || []), videoId];
-      const totalVideos = formation?.modules.reduce((total, module) => total + module.videos.length, 0) || 0;
+      const totalVideos = formation?.modules?.reduce((total, module) => total + (module.videos?.length || 0), 0) || 0;
       const newProgress = Math.round((updatedCompletedVideos.length / totalVideos) * 100);
       const newStatus = newProgress === 100 ? 'completed' : 'in-progress';
 
@@ -152,10 +152,10 @@ export default function FormationDetailPage() {
   };
 
   const getModuleProgress = (module: Module) => {
-    const totalVideos = module.videos.length;
-    const completedVideos = module.videos.filter(video => 
+    const totalVideos = module.videos?.length || 0;
+    const completedVideos = module.videos?.filter(video => 
       progress?.completedVideos?.includes(video.id)
-    ).length;
+    ).length || 0;
     return totalVideos > 0 ? Math.round((completedVideos / totalVideos) * 100) : 0;
   };
 
@@ -257,7 +257,7 @@ export default function FormationDetailPage() {
 
       {/* Modules et vidéos */}
       <div className="space-y-6">
-        {formation.modules.map((module, moduleIndex) => (
+        {formation.modules?.map((module, moduleIndex) => (
           <Card key={module.id}>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -278,7 +278,7 @@ export default function FormationDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {module.videos.map((video, videoIndex) => (
+                {module.videos?.map((video, videoIndex) => (
                   <div
                     key={video.id}
                     className={`p-4 border rounded-lg cursor-pointer transition-colors ${

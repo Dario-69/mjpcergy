@@ -232,6 +232,7 @@ export default function MesFormationsPage() {
                     <Button
                       variant={formationProgress.status === 'completed' ? 'outline' : 'default'}
                       size="sm"
+                      onClick={() => window.location.href = `/dashboard/membre/formations/${formation.id}`}
                     >
                       <Play className="h-4 w-4 mr-2" />
                       {formationProgress.status === 'completed' ? 'Revoir' : 'Commencer'}

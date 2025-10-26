@@ -3,10 +3,10 @@ import { adminDb } from "@/lib/firebase-admin";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = params.id;
+    const { id: userId } = await params;
     
     const userDoc = await adminDb.collection('users').doc(userId).get();
     
@@ -19,9 +19,16 @@ export async function GET(
 
     const userData = userDoc.data();
     
+    if (!userData) {
+      return NextResponse.json(
+        { message: "Données de l'utilisateur non trouvées" },
+        { status: 404 }
+      );
+    }
+    
     // Récupérer le département si l'utilisateur en a un
     let departmentData = null;
-    if (userData?.departmentId) {
+    if (userData.departmentId) {
       const departmentDoc = await adminDb.collection('departments').doc(userData.departmentId).get();
       if (departmentDoc.exists) {
         departmentData = {
@@ -54,10 +61,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = params.id;
+    const { id: userId } = await params;
     const { name, email, isActive, departmentId } = await request.json();
 
     // Vérifier que l'utilisateur existe

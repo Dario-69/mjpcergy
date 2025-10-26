@@ -99,9 +99,13 @@ export default function FormationsPage() {
       });
 
       if (response.ok) {
+        const updatedFormation = await response.json();
         setFormations(formations.map(formation => 
-          formation.id === formationId ? { ...formation, isArchived: !isArchived } : formation
+          formation.id === formationId ? updatedFormation : formation
         ));
+      } else {
+        const errorData = await response.json();
+        console.error('Erreur lors de la mise à jour:', errorData.message);
       }
     } catch (error) {
       console.error('Erreur lors de la mise à jour du statut:', error);
@@ -188,7 +192,7 @@ export default function FormationsPage() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">Total Modules</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {formations.reduce((total, f) => total + f.modules.length, 0)}
+                  {formations.reduce((total, f) => total + (f.modules?.length || 0), 0)}
                 </p>
               </div>
             </div>
@@ -273,11 +277,11 @@ export default function FormationsPage() {
                     <div className="flex items-center space-x-4 text-sm text-gray-600">
                       <span className="flex items-center">
                         <Users className="h-4 w-4 mr-1" />
-                        {formation.modules.length} module{formation.modules.length > 1 ? 's' : ''}
+                        {formation.modules?.length || 0} module{(formation.modules?.length || 0) > 1 ? 's' : ''}
                       </span>
                       <span className="flex items-center">
                         <Clock className="h-4 w-4 mr-1" />
-                        {formation.modules.reduce((total, module) => total + module.videos.length, 0)} vidéo{formation.modules.reduce((total, module) => total + module.videos.length, 0) > 1 ? 's' : ''}
+                        {formation.modules?.reduce((total, module) => total + (module.videos?.length || 0), 0) || 0} vidéo{(formation.modules?.reduce((total, module) => total + (module.videos?.length || 0), 0) || 0) > 1 ? 's' : ''}
                       </span>
                       {formation.estimatedDuration && (
                         <span className="flex items-center">

@@ -68,9 +68,10 @@ export async function GET(request: NextRequest) {
       query = query.where('createdById', '==', createdBy) as any;
     }
 
-    const formationsSnapshot = await query.orderBy('createdAt', 'desc').get();
+    // Récupérer les données sans orderBy pour éviter les problèmes d'index
+    const formationsSnapshot = await query.get();
     
-    const formations = [];
+    const formations: any[] = [];
     for (const doc of formationsSnapshot.docs) {
       const data = doc.data();
       
@@ -107,6 +108,9 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Trier côté client par date de création (plus récent en premier)
+    formations.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+    
     return NextResponse.json(formations);
   } catch (error) {
     console.error("Erreur lors de la récupération des formations:", error);
